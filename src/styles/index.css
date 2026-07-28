@@ -685,36 +685,19 @@ body {
 }
 
 /* Shared by <PlaceImage> and the generated <PlacePlaceholder> so the error fallback is
-   geometrically identical — zero layout shift by construction, not by luck. */
+   geometrically identical — zero layout shift by construction, not by luck.
+   object-fit: cover fills the box on both axes and crops whatever doesn't fit — used
+   everywhere a place photo appears (card, gallery tile, detail modal) so a photo is
+   framed the same way regardless of where it's shown. No letterboxing layer: a `contain`
+   + blurred-backdrop version of this was tried and reverted — the blur read as a mistake
+   to look at, not a design choice. */
 .place-image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover; /* only reaches the placeholder <svg>, which has no aspect problem */
-}
-
-/* Fills the letterbox the contained photo leaves. Over-scaled so the blur's own soft
-   edge stays outside the card (.card-face clips it). */
-.place-image-backdrop {
-  position: absolute;
-  inset: 0;
-  background-position: center;
-  background-size: cover;
-  filter: blur(16px) saturate(1.2) brightness(0.92);
-  transform: scale(1.2);
-}
-
-.place-image-photo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  /* Whole photo, always — every place image is a different size and ratio, and cropping
-     to fit is what would cut the subject in half. */
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .card-caption {
@@ -932,13 +915,18 @@ body {
    screens: a side-by-side row was squeezing both the photo and the two paragraphs into
    half the panel each. Capped at 1024px, shrinking to fit narrower viewports via the
    min() — never wider than that regardless of screen size. */
+/* No fixed height: the panel sizes to its content (photo + name + location + two
+   paragraphs) up to max-height, so a short description never carries empty space and a
+   tall one only scrolls once it genuinely can't fit. max-height is viewport-relative,
+   not a flat pixel cap — a flat cap forces a scrollbar on a screen tall enough to show
+   the whole thing, which is the opposite of "only scroll when actually needed". */
 .place-detail-panel {
   position: relative; /* stacks above the backdrop by DOM order, no z-index needed */
   width: min(1024px, 100%);
-  max-height: min(880px, 92vh);
-  overflow-x: clip; /* PlaceImage's blurred backdrop layer is deliberately 20% oversized
-    (see .place-image-backdrop) — .card-face clips it for the board, this clips it here.
-    Without it the panel grew a horizontal scrollbar from that one oversized layer. */
+  max-height: 95vh;
+  overflow-x: clip; /* defensive: nothing inside currently overflows the panel's own
+    box, but a `cover` photo living this close to a rounded corner is worth guarding
+    against a stray scrollbar rather than relying on max-width math staying exact. */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -947,6 +935,13 @@ body {
   color: var(--color-ink);
   text-align: left;
   box-shadow: 0 30px 60px -20px rgb(11 53 80 / 45%);
+}
+/* A narrower device screen has less room to spare, so it gets one extra point of
+   viewport height before the panel gives up and scrolls. */
+@media (max-width: 1023px) {
+  .place-detail-panel {
+    max-height: 96vh;
+  }
 }
 
 .place-detail-media {
