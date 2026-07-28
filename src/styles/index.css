@@ -1,13 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  /* Palette — Andean natural dyes on high-altitude night sky */
-  --color-ink: #10162c; /* base background */
-  --color-stone: #1c2444; /* elevated surfaces: sidebar, modal */
-  --color-cochineal: #c7383f; /* misses, lost lives, destructive */
-  --color-gold: #e8b33d; /* matches, score, primary accent */
-  --color-lagoon: #2e9b8f; /* secondary accent, confirmations */
-  --color-bone: #f2ede3; /* primary text */
+  /* Palette — bright, playful, modern: a light backdrop with candy-saturated accents,
+     one color family per difficulty level, echoed throughout buttons and stats. */
+  --color-page-start: #eaf7fb;
+  --color-page-end: #fdf1f7;
+  --color-surface: #ffffff;
+  --color-ink: #0b3550; /* headings, primary text on light surfaces */
+  --color-muted: #5b7688; /* secondary text */
+  --color-border: #e3edf2;
+
+  --color-brand: #0e8a9c; /* teal — primary CTAs, links, progress */
+  --color-brand-dark: #0b6b7a;
+  --color-easy: #63c24a;
+  --color-easy-dark: #499a35;
+  --color-medium: #f6a71f;
+  --color-medium-dark: #d98a06;
+  --color-hard: #e0417a;
+  --color-hard-dark: #b8215a;
+  --color-gold: #f6b93b; /* stars, score */
+  --color-danger: #e0417a; /* lost life, defeat accents */
 
   /* Type */
   --font-display: "Bricolage Grotesque", system-ui, sans-serif;
@@ -35,27 +47,52 @@ html {
 
 body {
   margin: 0;
-  background-color: var(--color-ink);
-  color: var(--color-bone);
+  /* Soft corner "blobs" via layered radial gradients — no extra markup, so a screen with
+     nothing but a board doesn't pay for decoration it can't show anyway. */
+  background:
+    radial-gradient(circle at 6% 10%, rgb(224 65 122 / 20%), transparent 24%),
+    radial-gradient(circle at 94% 14%, rgb(246 167 31 / 26%), transparent 26%),
+    radial-gradient(circle at 4% 92%, rgb(99 194 74 / 22%), transparent 26%),
+    radial-gradient(circle at 96% 90%, rgb(14 138 156 / 20%), transparent 26%),
+    linear-gradient(160deg, var(--color-page-start), var(--color-page-end));
+  background-attachment: fixed;
+  color: var(--color-ink);
   font-family: var(--font-body);
+  /* R5: no selectable text anywhere in the app shell. A long-press or a fast double-tap
+     highlighting "Fácil / Tiempo / Puntaje" in the header is exactly the whiteboard bug
+     this is for — .modal-name-input keeps working, form fields ignore an ancestor's
+     user-select. */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .btn {
   min-width: 64px;
   min-height: 64px;
-  padding: 0.75rem 1.5rem;
+  padding: 0.85rem 1.5rem;
   border: none;
-  border-radius: 0.5rem;
-  background: var(--color-stone);
-  color: var(--color-bone);
+  border-radius: 999px;
+  background: var(--color-brand);
+  color: white;
   font-family: var(--font-body);
-  font-size: clamp(0.9rem, 1.6vmin, 1.25rem);
+  font-weight: 700;
+  font-size: clamp(0.9rem, 1.6vmin, 1.15rem);
   cursor: pointer;
   user-select: none;
   -webkit-touch-callout: none;
+  box-shadow: 0 10px 22px -12px rgb(11 53 80 / 45%);
 }
 .btn:active {
-  background: var(--color-lagoon);
+  transform: scale(0.97);
+}
+
+.btn-outline {
+  background: var(--color-surface);
+  color: var(--color-brand);
+  box-shadow: inset 0 0 0 2px var(--color-border);
+}
+.btn-outline:active {
+  background: var(--color-page-start);
 }
 
 /* Menu and scores screens: simple centered stacks, not part of the zero-scroll board
@@ -67,18 +104,96 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 1rem;
   overflow: clip;
-  font-family: var(--font-display);
   text-align: center;
   padding: clamp(1rem, 4vmin, 3rem);
 }
 
+.menu-badge {
+  width: clamp(64px, 12vmin, 96px);
+  height: clamp(64px, 12vmin, 96px);
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 14px 28px -14px rgb(11 53 80 / 45%);
+  margin-bottom: 0.5rem;
+}
+
+.menu-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4vmin, 2.25rem);
+  color: var(--color-ink);
+}
+
+.menu-subtitle {
+  color: var(--color-muted);
+  margin-bottom: 0.5rem;
+}
+
 .menu-levels {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(420px, 100%);
+}
+
+.menu-secondary-actions {
+  display: flex;
+  gap: 0.75rem;
   flex-wrap: wrap;
   justify-content: center;
+  margin-top: 0.5rem;
+}
+
+/* One pill button per level: gradient fill in the level's own color family, stars as a
+   difficulty indicator (not a performance rating), and the pair count instead of a fixed
+   grid size — the board's actual cols/rows now depend on screen orientation, not level. */
+.level-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 64px;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 999px;
+  color: white;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
+  box-shadow: 0 12px 26px -12px rgb(11 53 80 / 45%);
+}
+.level-btn:active {
+  transform: scale(0.98);
+}
+.level-btn[data-level="easy"] {
+  background: linear-gradient(120deg, var(--color-easy), var(--color-easy-dark));
+}
+.level-btn[data-level="medium"] {
+  background: linear-gradient(120deg, var(--color-medium), var(--color-medium-dark));
+}
+.level-btn[data-level="hard"] {
+  background: linear-gradient(120deg, var(--color-hard), var(--color-hard-dark));
+}
+
+.level-btn-stars {
+  letter-spacing: 1px;
+  opacity: 0.9;
+  font-size: 0.85em;
+}
+
+.level-btn-label {
+  font-size: clamp(1rem, 2vmin, 1.25rem);
+  font-family: var(--font-display);
+}
+
+.level-btn-meta {
+  margin-left: auto;
+  font-size: 0.8em;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 /* --- Zero-scroll layout contract (IMPLEMENTATION_PLAN.md §10) ---
@@ -106,32 +221,38 @@ body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: clamp(0.5rem, 2vw, 1.5rem);
-  padding: clamp(0.5rem, 1.5vmin, 1rem) clamp(0.75rem, 2vw, 1.5rem);
-  border-radius: 0.75rem;
-  background: var(--color-stone);
+  gap: clamp(0.5rem, 2vw, 1.25rem);
+  padding: clamp(0.5rem, 1.5vmin, 0.85rem) clamp(0.75rem, 2vw, 1.5rem);
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: 0 10px 26px -16px rgb(11 53 80 / 35%);
 }
 
 .game-header-level {
   font-family: var(--font-display);
   font-size: clamp(1rem, 2vmin, 1.5rem);
+  color: var(--color-ink);
 }
 
 .game-header-stat {
   display: flex;
   align-items: baseline;
   gap: 0.4em;
-  font-size: clamp(0.85rem, 1.8vmin, 1.25rem);
+  padding: 0.35em 0.85em;
+  border-radius: 999px;
+  background: var(--color-page-start);
+  font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
 }
 
 .game-header-stat-label {
-  opacity: 0.7;
+  color: var(--color-muted);
 }
 
 .game-header-stat-value {
   font-variant-numeric: tabular-nums; /* fixed digit width — a jittering clock is very
     noticeable on a large display */
-  color: var(--color-gold);
+  color: var(--color-brand-dark);
+  font-weight: 700;
 }
 
 /* Still 64x64 (§11 rule 4): a touch target this is not the place to shrink, even
@@ -142,6 +263,14 @@ body {
   padding: 0.5rem;
   line-height: 1;
   font-size: 1.25rem;
+  border-radius: 50%;
+  background: var(--color-page-start);
+  color: var(--color-ink);
+  box-shadow: none;
+}
+.btn-icon:active {
+  background: var(--color-border);
+  transform: scale(0.95);
 }
 .game-header .btn-icon {
   margin-left: auto;
@@ -153,15 +282,15 @@ body {
 }
 
 .life-icon {
-  width: clamp(16px, 2.4vmin, 28px);
-  height: clamp(16px, 2.4vmin, 28px);
+  width: clamp(16px, 2.4vmin, 26px);
+  height: clamp(16px, 2.4vmin, 26px);
   border-radius: 50%;
-  background: var(--color-gold);
+  background: var(--color-danger);
   transition: background 200ms ease;
 }
 .life-icon[data-lost="true"] {
   background: none;
-  box-shadow: inset 0 0 0 2px var(--color-cochineal);
+  box-shadow: inset 0 0 0 2px var(--color-border);
 }
 
 .board-area {
@@ -175,6 +304,11 @@ body {
 
 .board {
   --gap: clamp(0.25rem, 1vmin, 1.25rem);
+  /* Landscape by default — more columns than rows — matching most of this board's
+     wall-display target. A portrait container (tablet held upright, narrow window)
+     flips to more rows than columns instead, via the container query below. */
+  --cols: var(--cols-landscape);
+  --rows: var(--rows-landscape);
   /* Both candidates subtract the gaps, so the cell is exactly square and
      cols*cell + (cols-1)*gap <= 100cqw holds by construction, for both axes. */
   --cell: min(
@@ -190,6 +324,15 @@ body {
   min-width: 0;
   min-height: 0;
   touch-action: none; /* manipulation on <html> still allows pinch-zoom here otherwise */
+}
+
+/* .board-area already has container-type: size (above), so this queries its own box —
+   no container-name needed. Re-evaluates on every resize, including an F11 toggle. */
+@container (aspect-ratio < 1) {
+  .board {
+    --cols: var(--cols-portrait);
+    --rows: var(--rows-portrait);
+  }
 }
 
 /* --- Card --- */
@@ -233,22 +376,31 @@ body {
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
-  border-radius: 0.5rem;
+  border-radius: clamp(0.5rem, 1.5vmin, 1rem);
   overflow: clip;
 }
 
 .card-face--back {
-  background: var(--color-stone);
-  background-image: repeating-linear-gradient(45deg, var(--color-gold) 0 2px, transparent 2px 12px);
-  /* The woven-back signature (IMPLEMENTATION_PLAN.md §9): the pattern's hue shifts
-     slightly per grid position so the face-down board reads as one continuous textile,
-     not twenty identical tiles. */
+  display: grid;
+  place-items: center;
+  background: linear-gradient(155deg, #f0834a, #d95a30);
+  /* The face-down signature (IMPLEMENTATION_PLAN.md §9): the tone shifts slightly per
+     grid position so the board reads as many related cards, not one flat sheet. */
   filter: hue-rotate(calc(var(--card-index) * 2.4deg));
+  box-shadow: inset 0 -6px 0 rgb(0 0 0 / 12%);
+}
+.card-face--back::before {
+  content: "?";
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.25rem, 4.5vmin, 2.75rem);
+  color: rgb(255 255 255 / 88%);
 }
 
 .card-face--front {
   transform: rotateY(180deg);
-  background: var(--color-stone);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 .place-image {
@@ -267,8 +419,8 @@ body {
   padding: clamp(0.25rem, 1vmin, 0.75rem);
   font-family: var(--font-display);
   font-size: clamp(0.7rem, 1.6vmin, 2rem);
-  color: var(--color-bone);
-  background: linear-gradient(to top, rgb(16 22 44 / 90%), transparent);
+  color: white;
+  background: linear-gradient(to top, rgb(11 53 80 / 88%), transparent);
   text-align: center;
   /* Absolutely positioned, never in flow: if the name entered the flow on match, the
      card would change height and the whole grid would jump. */
@@ -277,6 +429,9 @@ body {
 }
 .card[data-matched="true"] .card-caption {
   transform: translateY(0);
+}
+.card[data-matched="true"] .card-face--front {
+  box-shadow: inset 0 0 0 3px var(--color-easy);
 }
 
 /* --- Victory / defeat modal --- */
@@ -287,7 +442,7 @@ body {
   display: grid;
   place-items: center;
   padding: clamp(1rem, 4vmin, 3rem);
-  background: rgb(16 22 44 / 80%);
+  background: rgb(11 53 80 / 55%);
   overflow: clip; /* the overlay must never introduce its own scroll either */
 }
 
@@ -298,22 +453,97 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding: clamp(1rem, 3vmin, 2rem);
-  border-radius: 1rem;
-  background: var(--color-stone);
+  gap: 0.75rem;
+  padding: clamp(1.25rem, 3vmin, 2.25rem);
+  border-radius: 1.75rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
   text-align: center;
   font-family: var(--font-display);
+  box-shadow: 0 30px 60px -20px rgb(11 53 80 / 45%);
 }
 
-.modal-score {
-  font-size: clamp(1.1rem, 2.5vmin, 1.75rem);
-  color: var(--color-gold);
+.modal-icon {
+  font-size: clamp(2.5rem, 6vmin, 3.5rem);
+  line-height: 1;
+}
+.modal-icon[data-variant="defeat"] {
+  filter: saturate(1.2);
+}
+
+.modal-subtitle {
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: clamp(0.85rem, 1.8vmin, 1.05rem);
+  margin-top: -0.5rem;
+}
+
+.modal-encouragement {
+  color: var(--color-hard-dark);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  width: 100%;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  background: var(--color-page-start);
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.5rem;
+}
+
+.stat-tile-icon {
+  font-size: 1.1rem;
+}
+
+.stat-tile-label {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.stat-tile-value {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 2.5vmin, 1.4rem);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn-cta {
+  flex: 1 1 auto;
+  background: linear-gradient(120deg, var(--color-brand), var(--color-brand-dark));
+}
+.btn-cta[data-variant="defeat"] {
+  background: linear-gradient(120deg, var(--color-hard), var(--color-hard-dark));
+}
+
+.modal-gallery-title {
+  font-size: clamp(0.95rem, 2vmin, 1.15rem);
+  margin-top: 0.25rem;
 }
 
 .place-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   gap: 0.5rem;
   width: 100%;
   margin: 0;
@@ -324,25 +554,19 @@ body {
 .place-gallery-item {
   position: relative;
   aspect-ratio: 1 / 1;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   overflow: clip;
   font-family: var(--font-body);
   font-size: 0.7rem;
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 .place-gallery-item span {
   position: absolute;
   inset-inline: 0;
   bottom: 0;
   padding: 0.25rem;
-  background: linear-gradient(to top, rgb(16 22 44 / 90%), transparent);
-  color: var(--color-bone);
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  justify-content: center;
+  background: linear-gradient(to top, rgb(11 53 80 / 88%), transparent);
+  color: white;
 }
 
 /* Deliberately small and secondary: saving a name is optional, "Siguiente nivel" /
@@ -355,13 +579,13 @@ body {
   justify-content: center;
   width: 100%;
   padding-top: 0.75rem;
-  border-top: 1px solid rgb(242 237 227 / 15%);
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-body);
   font-size: 0.85rem;
-  opacity: 0.85;
 }
 
 .modal-save-question {
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 
 .modal-name-input {
@@ -369,28 +593,28 @@ body {
   min-height: 44px;
   padding: 0 0.75rem;
   border: none;
-  border-radius: 0.5rem;
-  background: var(--color-ink);
-  color: var(--color-bone);
+  border-radius: 0.75rem;
+  background: var(--color-page-start);
+  color: var(--color-ink);
   font-family: var(--font-body);
   font-size: 0.9rem;
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 .btn-subtle {
   min-width: 0;
   min-height: 44px;
-  padding: 0.4rem 0.9rem;
+  padding: 0.4rem 1rem;
   font-size: 0.85rem;
-  background: transparent;
-  box-shadow: inset 0 0 0 1px rgb(242 237 227 / 25%);
-}
-.btn-subtle:active {
-  background: var(--color-lagoon);
+  background: var(--color-brand);
+  box-shadow: none;
 }
 
 .modal-saved {
-  color: var(--color-lagoon);
+  color: var(--color-easy-dark);
+  font-family: var(--font-body);
   font-size: 0.9rem;
+  font-weight: 600;
 }
 
 /* --- Scores screen --- */
@@ -403,17 +627,20 @@ body {
 }
 
 .scores-tab {
-  opacity: 0.6;
+  opacity: 0.55;
 }
 .scores-tab[data-active="true"] {
   opacity: 1;
-  background: var(--color-lagoon);
 }
 
 .leaderboard-columns {
   display: flex;
   gap: clamp(1rem, 4vw, 3rem);
   width: min(700px, 100%);
+  padding: clamp(1rem, 3vmin, 1.5rem);
+  border-radius: 1.25rem;
+  background: var(--color-surface);
+  box-shadow: 0 20px 40px -24px rgb(11 53 80 / 35%);
 }
 
 .leaderboard-column {
@@ -428,8 +655,10 @@ body {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  padding: 0.25rem 0;
+  padding: 0.3rem 0;
+  font-family: var(--font-body);
   font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .leaderboard-name {
@@ -442,7 +671,8 @@ body {
 
 .leaderboard-score {
   font-variant-numeric: tabular-nums;
-  color: var(--color-gold);
+  font-weight: 700;
+  color: var(--color-brand-dark);
 }
 
 @media (prefers-reduced-motion: reduce) {

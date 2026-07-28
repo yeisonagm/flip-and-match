@@ -1,12 +1,19 @@
 import { useState } from "react";
 import type { TouristPlace } from "@/features/catalog";
 import { copy } from "@/shared/copy/es";
+import { formatTime } from "@/shared/lib/formatTime";
 import { Modal } from "@/shared/ui/Modal";
 import { PlaceGallery } from "./PlaceGallery";
+import { StatTile } from "./StatTile";
 
 interface VictoryModalProps {
   readonly places: readonly TouristPlace[];
+  readonly levelLabel: string;
+  readonly stars: number;
   readonly score: number;
+  readonly elapsedSeconds: number;
+  readonly matches: number;
+  readonly misses: number;
   readonly onSaveScore: (playerName: string) => void;
   readonly onNextLevel: (() => void) | null;
   readonly onExit: () => void;
@@ -17,7 +24,12 @@ interface VictoryModalProps {
 // the save form sits below as a small, clearly optional row, never blocking either one.
 export function VictoryModal({
   places,
+  levelLabel,
+  stars,
   score,
+  elapsedSeconds,
+  matches,
+  misses,
   onSaveScore,
   onNextLevel,
   onExit,
@@ -27,20 +39,37 @@ export function VictoryModal({
 
   return (
     <Modal>
+      <div className="modal-icon" data-variant="victory" aria-hidden="true">
+        🎉
+      </div>
       <h2>{copy.victory.title}</h2>
-      <p className="modal-score">{copy.victory.scoreLabel(score)}</p>
-      <h3>{copy.victory.subtitle}</h3>
-      <PlaceGallery places={places} />
+      <p className="modal-subtitle">
+        {"★".repeat(stars)}
+        {"☆".repeat(3 - stars)} · {copy.victory.subtitle(levelLabel)}
+      </p>
+      <div className="stat-grid">
+        <StatTile icon="⭐" label={copy.game.score} value={score} />
+        <StatTile icon="⏱" label={copy.game.time} value={formatTime(elapsedSeconds * 1000)} />
+        <StatTile icon="✅" label={copy.game.matches} value={matches} />
+        <StatTile icon="❌" label={copy.game.misses} value={misses} />
+      </div>
       <div className="modal-actions">
         {onNextLevel !== null && (
-          <button type="button" className="btn" onClick={onNextLevel}>
-            {copy.victory.nextLevel}
+          <button
+            type="button"
+            className="btn btn-cta"
+            data-variant="victory"
+            onClick={onNextLevel}
+          >
+            {copy.victory.nextLevel} →
           </button>
         )}
-        <button type="button" className="btn" onClick={onExit}>
+        <button type="button" className="btn btn-outline" onClick={onExit}>
           {copy.victory.backToMenu}
         </button>
       </div>
+      <h3 className="modal-gallery-title">{copy.victory.gallerySubtitle}</h3>
+      <PlaceGallery places={places} />
       {saved ? (
         <p className="modal-saved">{copy.victory.saved}</p>
       ) : (

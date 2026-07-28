@@ -307,10 +307,11 @@ flip-and-match/
 │   │   │   │   ├── useMemoryGame.ts
 │   │   │   │   └── useGameClock.ts
 │   │   │   ├── components/
-│   │   │   │   ├── Board.tsx
+│   │   │   │   ├── Board.tsx         # calcula cols/rows para ambas orientaciones, ver §10
 │   │   │   │   ├── CardItem.tsx
 │   │   │   │   ├── GameHeader.tsx    # header horizontal compacto, no sidebar — ver §10
 │   │   │   │   ├── LivesIndicator.tsx
+│   │   │   │   ├── StatTile.tsx      # tile de estadística, reusado por ambos modales
 │   │   │   │   ├── PlaceGallery.tsx  # shared by both modals below
 │   │   │   │   ├── VictoryModal.tsx
 │   │   │   │   └── DefeatModal.tsx   # shares Modal shell with VictoryModal via shared/ui
@@ -333,7 +334,8 @@ flip-and-match/
 │   │   ├── lib/
 │   │   │   ├── shuffle.ts
 │   │   │   ├── createId.ts
-│   │   │   └── formatTime.ts
+│   │   │   ├── formatTime.ts
+│   │   │   └── computeGridDimensions.ts  # cols/rows por orientación, ver §10
 │   │   └── copy/es.ts               # TODOS los textos visibles, en un solo lugar
 │   ├── styles/index.css
 │   └── main.tsx
@@ -523,26 +525,26 @@ export interface ScoreEntry {
 // features/memory-game/config/levels.ts
 export interface LevelConfig {
   readonly label: string;
-  readonly cols: number;
-  readonly rows: number;
-  readonly pairs: number; // invariante: cols * rows === pairs * 2, ver §20
+  readonly pairs: number;
 }
 
 export const LEVELS = {
-  easy: { label: "Fácil", cols: 4, rows: 3, pairs: 6 },
-  medium: { label: "Medio", cols: 6, rows: 3, pairs: 9 },
-  hard: { label: "Difícil", cols: 5, rows: 4, pairs: 10 },
+  easy: { label: "Fácil", pairs: 6 },
+  medium: { label: "Medio", pairs: 9 },
+  hard: { label: "Difícil", pairs: 10 },
 } as const satisfies Record<LevelId, LevelConfig>;
 ```
 
-**Siempre más columnas que filas.** El destino es una pantalla 16:9 apaisada; la altura
-es el recurso escaso. Una grilla 3×4 vertical desperdicia la mitad del ancho y encoge
-las cartas. Esta y la invariante `cols * rows === pairs * 2` se verifican en un test de
-dominio (§20), no solo por convención — de hecho fue precisamente ese test el que atrapó
-el primer incumplimiento real: una versión anterior de este documento tenía el nivel medio
-en `4×4`, una grilla cuadrada que viola la regla por definición (`cols` no es mayor que
-`rows`, es igual). `6×3` la resuelve y de paso ubica el nivel medio, en número de pares,
-entre el fácil (6) y el difícil (10).
+**Sin `cols`/`rows` fijos por nivel.** Una versión anterior de este documento los fijaba
+por nivel asumiendo que el destino siempre iba a ser una pantalla 16:9 apaisada — pero la
+app también corre en tablet/teléfono en vertical, donde esa suposición desperdicia la
+mitad del ancho y encoge las cartas. La cantidad de pares sigue siendo del nivel (la
+dificultad); la disposición cols×rows se **calcula en cada render** a partir de esa
+cantidad y de la orientación real de la pantalla, en `shared/lib/computeGridDimensions.ts`
+(§10) — probada con tests de dominio (§20), no solo por convención. De hecho, fue
+precisamente un test de esta clase el que atrapó el primer incumplimiento real de la regla
+anterior: una versión de este documento tenía el nivel medio en `4×4`, una grilla cuadrada
+que violaba "más columnas que filas" por definición.
 
 `as const satisfies` da autocompletado literal _y_ validación de forma. Es el patrón
 correcto de TypeScript para configuración estática.
@@ -633,15 +635,22 @@ consistente y la permutación resultante es uniforme.
 
 ## 9. Dirección visual
 
-El brief tiene un sujeto muy concreto: el Perú andino y costero, visto en una pantalla
-grande, por gente joven. La paleta y la tipografía salen de ahí, no de un tema genérico
-de dashboard.
+**Segunda dirección visual (post-Etapa 5), reemplaza la anterior.** La primera versión de
+este documento proponía un concepto oscuro y sobrio ("Textil andino sobre cielo de
+altura": fondo azul-noche, tintes andinos apagados). El usuario pidió explícitamente un
+giro hacia un estilo claro, colorido y lúdico tipo app móvil moderna — a partir de
+referencias visuales concretas que compartió — y ese es el que queda vigente. El sujeto
+(Perú, lugares turísticos, público joven) no cambia; sí cambia el tono: de "sobrio y
+nocturno" a "brillante y de juego".
 
-### Concepto: **Textil andino sobre cielo de altura**
+### Concepto: **Fondo claro, acentos "caramelo" por nivel**
 
-El fondo es el azul profundo del cielo altoandino de noche. Los acentos vienen de tintes
-naturales usados en los textiles peruanos: cochinilla, oro de chicha, verde de laguna.
-La carta boca abajo es un tejido, no un rectángulo de color.
+Fondo muy claro con manchas de color suaves en las esquinas (vía gradientes radiales en
+`body`, sin marcado extra — ver Tokens). Cada dificultad tiene su propia familia de color
+en degradado (verde/ámbar/magenta para fácil/medio/difícil), reutilizada de forma
+consistente en botones de nivel, CTAs y acentos. Tarjetas y modales son superficies
+blancas con esquinas muy redondeadas y sombra suave — la carta boca abajo es un color
+sólido cálido con un "?" centrado, no un tejido.
 
 ### Tokens
 
@@ -650,13 +659,24 @@ La carta boca abajo es un tejido, no un rectángulo de color.
 @import "tailwindcss";
 
 @theme {
-  /* Palette — Andean natural dyes on high-altitude night sky */
-  --color-ink: #10162c; /* base background */
-  --color-stone: #1c2444; /* elevated surfaces: sidebar, modal */
-  --color-cochineal: #c7383f; /* misses, lost lives, destructive */
-  --color-gold: #e8b33d; /* matches, score, primary accent */
-  --color-lagoon: #2e9b8f; /* secondary accent, confirmations */
-  --color-bone: #f2ede3; /* primary text */
+  /* Palette — bright, playful, modern: light backdrop, one gradient family per level */
+  --color-page-start: #eaf7fb;
+  --color-page-end: #fdf1f7;
+  --color-surface: #ffffff;
+  --color-ink: #0b3550; /* headings, primary text on light surfaces */
+  --color-muted: #5b7688; /* secondary text */
+  --color-border: #e3edf2;
+
+  --color-brand: #0e8a9c; /* teal — primary CTAs, links, progress */
+  --color-brand-dark: #0b6b7a;
+  --color-easy: #63c24a;
+  --color-easy-dark: #499a35;
+  --color-medium: #f6a71f;
+  --color-medium-dark: #d98a06;
+  --color-hard: #e0417a;
+  --color-hard-dark: #b8215a;
+  --color-gold: #f6b93b; /* stars, score */
+  --color-danger: #e0417a; /* lost life, defeat accents */
 
   /* Type */
   --font-display: "Bricolage Grotesque", system-ui, sans-serif;
@@ -687,25 +707,28 @@ funciona en `pnpm dev` y da 404 **solo dentro del `.exe` empaquetado**, exactame
 fallo que R3 (`base: './'`) existe para prevenir. Al importar la fuente desde `src/`, Vite la
 procesa como cualquier otro asset y reescribe la URL correctamente en ambos entornos.
 
-### Elemento firma: el tablero como un solo tejido
+### Elemento firma: cartas boca abajo con "?"
 
-El reverso de la carta es un patrón escalonado derivado de la chakana, en SVG. La clave:
-el tono del patrón se desplaza levemente según la posición de la carta en la grilla, vía
-una custom property. El resultado es que el tablero boca abajo se lee como **una manta
-tejida completa**, no como veinte fichas idénticas.
-
-```tsx
-<div className="card-back" style={{ "--card-index": index } as CSSProperties} />
-```
+El reverso de la carta es un degradado cálido sólido (naranja/terracota) con un "?"
+centrado — no un patrón tejido. Se conserva la idea de que el tono varíe levemente según
+la posición en la grilla (misma técnica, un `hue-rotate` con la custom property
+`--card-index`), así el tablero boca abajo sigue leyéndose como un conjunto relacionado y
+no veinte fichas idénticas, pero el motivo visual en sí (SVG de chakana escalonada) se
+retiró junto con el resto del concepto oscuro.
 
 ```css
-.card-back {
+.card-face--back {
+  background: linear-gradient(155deg, #f0834a, #d95a30);
   filter: hue-rotate(calc(var(--card-index) * 2.4deg));
+}
+.card-face--back::before {
+  content: "?";
+  color: rgb(255 255 255 / 88%);
 }
 ```
 
-Es una línea de CSS y es lo único memorable que necesita la pantalla. Todo lo demás va
-callado y disciplinado.
+Una línea de CSS (`hue-rotate`) sigue siendo lo único que distingue una carta de otra boca
+abajo. Todo lo demás va callado y disciplinado.
 
 ### Motion
 
@@ -730,27 +753,27 @@ Esta es la parte que más se rompe. El patrón es **CSS puro, sin JavaScript, si
 ResizeObserver**.
 
 ```
-┌────────────┬───────────────────────────────────────────────┐
-│            │                                               │
-│  SIDEBAR   │              BOARD AREA                       │
-│  (fija)    │              (flex: 1, min-width: 0)          │
-│            │                                               │
-│  ♥ ♥ ♡     │        ┌───┬───┬───┬───┬───┐                  │
-│  ⏱ 01:24   │        ├───┼───┼───┼───┼───┤                  │
-│  ✓ 6       │        ├───┼───┼───┼───┼───┤                  │
-│  ✗ 3       │        └───┴───┴───┴───┴───┘                  │
-│  ★ 8760    │                                               │
-│            │                                               │
-│  [ Salir ] │                                               │
-└────────────┴───────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│  GAME HEADER  (flex: 0 0 auto — alto por contenido)            │
+│  Nivel   ♥ ♥ ♡   ⏱ 01:24   ★ 8760                    [ ✕ ]     │
+├───────────────────────────────────────────────────────────────┤
+│                                                                 │
+│                  BOARD AREA (flex: 1, min-height: 0)           │
+│                                                                 │
+│              ┌───┬───┬───┬───┬───┐                             │
+│              ├───┼───┼───┼───┼───┤                             │
+│              ├───┼───┼───┼───┼───┤                             │
+│              └───┴───┴───┴───┴───┘                             │
+│                                                                 │
+└───────────────────────────────────────────────────────────────┘
 ```
 
-Las vidas van **arriba del todo** en el sidebar, no al final junto al puntaje: son la
-información que más urgente necesita leer alguien a distancia — perder de vista cuántas
-quedan es peor que perder de vista el puntaje. El corazón perdido cambia de `--color-gold`
-a un contorno vacío en `--color-cochineal`, sin animación de por medio salvo un pulso breve
-en el instante del fallo que lo apaga, para que el ojo lo capte incluso sin estar mirando
-el sidebar en ese momento.
+Las vidas van **primero, a la izquierda** en el header, no al final junto al puntaje: son
+la información que más urgente necesita leer alguien a distancia — perder de vista cuántas
+quedan es peor que perder de vista el puntaje. El corazón perdido cambia de lleno a un
+contorno vacío en `--color-danger`, sin animación de por medio salvo un pulso breve en el
+instante del fallo que lo apaga, para que el ojo lo capte incluso sin estar mirando el
+header en ese momento.
 
 **Por qué el criterio de aceptación no es "no aparece scroll".** Con `overflow: hidden` en
 `.app-shell`, una barra de scroll es **imposible por definición** — no es una salvaguarda,
@@ -806,6 +829,10 @@ body,
 
 .board {
   --gap: clamp(0.25rem, 1vmin, 1.25rem);
+  /* Landscape por defecto; una query de contenedor la cambia a portrait — ver
+     "Orientación dinámica" abajo. */
+  --cols: var(--cols-landscape);
+  --rows: var(--rows-landscape);
   /* Ambos candidatos restan los gaps, así que la celda es exactamente cuadrada y
      cols*cell + (cols-1)*gap <= 100cqw se cumple por construcción, para ambos ejes. */
   --cell: min(
@@ -818,6 +845,15 @@ body,
   gap: var(--gap);
   min-width: 0;
   min-height: 0;
+}
+
+/* .board-area ya tiene container-type: size, así que esto consulta su propia caja — sin
+   container-name. Se re-evalúa en cada resize, incluido un toggle de F11. */
+@container (aspect-ratio < 1) {
+  .board {
+    --cols: var(--cols-portrait);
+    --rows: var(--rows-portrait);
+  }
 }
 
 .card {
@@ -833,7 +869,20 @@ body,
 }
 ```
 
-**Por qué no puede desbordar en ningún tamaño, para cualquier `cols`/`rows` con `cols > rows`:**
+### Orientación dinámica: landscape vs portrait
+
+`Board` ya no recibe `cols`/`rows` fijos por nivel — los calcula en cada render, para
+**ambas** orientaciones, con `shared/lib/computeGridDimensions.ts` (§20): busca el par de
+factores de `pairs * 2` más cercano a un cuadrado y orienta el lado largo según el eje
+pedido (columnas en landscape, filas en portrait). Ambos resultados se pasan como custom
+properties (`--cols-landscape`, `--rows-landscape`, `--cols-portrait`,
+`--rows-portrait`), y una **media query de contenedor** (`@container (aspect-ratio < 1)`)
+elige cuál usar según la relación de aspecto real de `.board-area` — sin JavaScript, sin
+`resize` listener, y reaccionando al instante a cualquier cambio de tamaño, incluido un
+toggle de pantalla completa (F11). Es la misma técnica que ya resolvía el ajuste de celda:
+CSS puro reaccionando al contenedor, no al viewport ni a un estado de React.
+
+**Por qué no puede desbordar en ningún tamaño, para cualquier `cols`/`rows` calculado:**
 `--cell` es el mínimo de las dos soluciones exactas, así que ambas desigualdades
 (`cols·cell + (cols−1)·gap ≤ 100cqw` y lo mismo para filas) se cumplen a la vez, y
 `container-type: size` garantiza que `100cqw`/`100cqh` los determina el layout flex, no el
@@ -1191,8 +1240,12 @@ useEffect(() => {
   cada una; 2.6 MB por las veinte. Una pizarra 4K con grilla 5×4 muestra cartas de ~370 px;
   1000 px cubre eso con margen de sobra. A 1080 px en PNG estarías metiendo 16 MB en el
   `.exe` sin ganancia visual alguna.
-- Reverso de carta: SVG, no bitmap.
+- Reverso de carta: CSS puro (degradado + `"?"`), sin SVG ni bitmap — ver §9.
 - Nombres de archivo en kebab-case, iguales al `id` de la ficha: `machu-picchu.webp`.
+- Logo de la app: `app-icon.png` (raíz del proyecto, 1024×1024, mismo archivo que genera
+  los íconos de `src-tauri/icons/`) se copia a `src/assets/logo.png` y se importa desde ahí
+  — así Vite lo procesa y hashea como cualquier otro asset del bundle. Se usa en el badge
+  circular del menú (`MenuScreen`) y ya estaba wireado como favicon desde la Etapa 0.
 - **Precargar y decodificar durante `PREVIEW`, sin bloquear la partida.** Sin esto hay
   parpadeo en el primer volteo. Pero no debe ser un `await` en el camino crítico: con
   imágenes presentes en un disco lento, esperar el `Promise.all` retendría al jugador; y hoy,
@@ -1256,13 +1309,18 @@ En `buildDeck`:
 
 En `levels` (invariante de nivel, §20):
 
-- Para cada entrada de `LEVELS`: `cols * rows === pairs * 2`
-- Para cada entrada de `LEVELS`: `cols > rows`
+- `pairs` aumenta con la dificultad, en el orden de `LEVEL_IDS`
+
+En `computeGridDimensions` (§10, §20):
+
+- `cols * rows === totalCards`, para ambas orientaciones
+- landscape: `cols >= rows`; portrait: `rows >= cols`
+- reproduce los pares conocidos: 12→4×3 landscape / 3×4 portrait, 18→6×3 / 3×6, 20→5×4 / 4×5
 
 En `places.data` (invariante de catálogo, §20):
 
 - Todos los `id` son únicos
-- `catalog.length >= max(pairs)` sobre todos los niveles (≥ 10 para el nivel difícil)
+- `catalog.length >= max(pairs)` sobre todos los niveles (≥ 12 para el nivel difícil)
 
 En `scoring`:
 
@@ -1547,11 +1605,11 @@ return shuffle(deck, rng);
 Un `flatMap` que siempre emite dos cartas por lugar hace el desbalance irrepresentable. Los
 `instanceId` se derivan del `id` — únicos por construcción, sin necesidad de `createId()`.
 
-Dos invariantes se verifican en tests de dominio (§15):
+Tres invariantes se verifican en tests de dominio (§15):
 
-- **Nivel:** `cols * rows === pairs * 2` y `cols > rows`, para cada entrada de `LEVELS`.
+- **Grilla:** `cols * rows === totalCards` para ambas orientaciones, en `computeGridDimensions`.
 - **Catálogo:** todos los `id` son únicos (un `id` repetido produciría cuatro cartas del mismo
-  lugar) y `catalog.length >= max(pairs)` sobre todos los niveles — al menos **10 lugares**
+  lugar) y `catalog.length >= max(pairs)` sobre todos los niveles — al menos **12 lugares**
   para el nivel difícil.
 
 "No repite el mazo anterior" (RF-03) se implementa como parámetro puro

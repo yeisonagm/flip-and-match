@@ -1,3 +1,4 @@
+import logo from "@/assets/logo.png";
 import { LEVEL_IDS, LEVELS } from "@/features/memory-game";
 import { fullscreen } from "@/platform/fullscreen";
 import { copy } from "@/shared/copy/es";
@@ -10,26 +11,37 @@ interface MenuScreenProps {
 export function MenuScreen({ onNavigate }: MenuScreenProps) {
   return (
     <main className="menu-screen">
-      <h1>{copy.menu.title}</h1>
-      <p>{copy.menu.subtitle}</p>
+      <img className="menu-badge" src={logo} alt="" />
+      <h1 className="menu-title">{copy.menu.title}</h1>
+      <p className="menu-subtitle">{copy.menu.subtitle}</p>
       <div className="menu-levels">
-        {LEVEL_IDS.map((id) => (
+        {LEVEL_IDS.map((id, index) => (
           <button
             key={id}
             type="button"
-            className="btn"
+            className="level-btn"
+            data-level={id}
+            aria-label={copy.menu.play(LEVELS[id].label)}
             onClick={() => onNavigate({ kind: "GAME", levelId: id })}
           >
-            {copy.menu.play(LEVELS[id].label)}
+            <span className="level-btn-stars" aria-hidden="true">
+              {"★".repeat(index + 1)}
+            </span>
+            <span className="level-btn-label">{LEVELS[id].label}</span>
+            <span className="level-btn-meta">{copy.menu.pairsLabel(LEVELS[id].pairs)}</span>
           </button>
         ))}
       </div>
-      <div className="menu-levels">
-        <button type="button" className="btn" onClick={() => onNavigate({ kind: "SCORES" })}>
-          {copy.menu.scores}
+      <div className="menu-secondary-actions">
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() => onNavigate({ kind: "SCORES" })}
+        >
+          🏆 {copy.menu.scores}
         </button>
-        <button type="button" className="btn" onClick={() => fullscreen.toggle()}>
-          {copy.menu.fullscreen}
+        <button type="button" className="btn btn-outline" onClick={() => fullscreen.toggle()}>
+          ⛶ {copy.menu.fullscreen}
         </button>
       </div>
     </main>

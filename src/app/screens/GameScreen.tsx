@@ -39,6 +39,9 @@ export function GameScreen({ levelId, onNavigate }: GameScreenProps) {
   const elapsedSeconds = Math.floor(state.elapsedMs / 1000);
   const score = computeScore(elapsedSeconds, state.misses);
   const nextLevelId = LEVEL_IDS[LEVEL_IDS.indexOf(levelId) + 1] ?? null;
+  // 1/2/3 stars mirror the menu's difficulty indicator, not a performance score — the
+  // domain has no notion of a per-run rating.
+  const difficultyStars = LEVEL_IDS.indexOf(levelId) + 1;
 
   const exitToMenu = (): void => onNavigate({ kind: "MENU" });
 
@@ -67,18 +70,17 @@ export function GameScreen({ levelId, onNavigate }: GameScreenProps) {
         onExit={exitToMenu}
       />
       <div className="board-area">
-        <Board
-          cards={state.cards}
-          cols={level.cols}
-          rows={level.rows}
-          disabled={disabled}
-          onSelect={selectCard}
-        />
+        <Board cards={state.cards} disabled={disabled} onSelect={selectCard} />
       </div>
       {state.status === "VICTORY" && (
         <VictoryModal
           places={matchedPlacesOf(state.cards)}
+          levelLabel={level.label}
+          stars={difficultyStars}
           score={score}
+          elapsedSeconds={elapsedSeconds}
+          matches={state.matches}
+          misses={state.misses}
           onSaveScore={saveScore}
           onNextLevel={
             nextLevelId === null ? null : () => onNavigate({ kind: "GAME", levelId: nextLevelId })
@@ -87,7 +89,17 @@ export function GameScreen({ levelId, onNavigate }: GameScreenProps) {
         />
       )}
       {state.status === "DEFEAT" && (
-        <DefeatModal places={matchedPlacesOf(state.cards)} onRetry={restart} onExit={exitToMenu} />
+        <DefeatModal
+          places={matchedPlacesOf(state.cards)}
+          levelLabel={level.label}
+          totalPairs={level.pairs}
+          maxLives={state.settings.maxLives}
+          elapsedSeconds={elapsedSeconds}
+          matches={state.matches}
+          misses={state.misses}
+          onRetry={restart}
+          onExit={exitToMenu}
+        />
       )}
     </div>
   );

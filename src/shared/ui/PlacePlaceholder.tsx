@@ -20,8 +20,8 @@ export function PlacePlaceholder({ placeId }: { readonly placeId: string }) {
       aria-hidden="true"
       focusable="false"
     >
-      <rect width="100" height="100" fill={`hsl(${hue} 42% 26%)`} />
-      <g fill={`hsl(${accentHue} 58% 62%)`} transform={`rotate(${hue % 90} 50 50)`}>
+      <rect width="100" height="100" fill={`hsl(${hue} 68% 62%)`} />
+      <g fill={`hsl(${accentHue} 80% 85%)`} transform={`rotate(${hue % 90} 50 50)`}>
         <path d="M50 18 L74 42 L62 42 L62 58 L74 58 L50 82 L26 58 L38 58 L38 42 L26 42 Z" />
       </g>
     </svg>

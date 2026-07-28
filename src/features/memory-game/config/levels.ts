@@ -2,19 +2,18 @@ import type { LevelId } from "../domain/types";
 
 export interface LevelConfig {
   readonly label: string;
-  readonly cols: number;
-  readonly rows: number;
-  readonly pairs: number; // invariant: cols * rows === pairs * 2, tested in __tests__/levels.test.ts
+  readonly pairs: number;
 }
 
-// Always more columns than rows: the target is a 16:9 landscape display, where height
-// is the scarce dimension.
+// No cols/rows here: the board orientation depends on the screen (portrait vs
+// landscape), not on the level, so Board computes both from `pairs` at render time —
+// see shared/lib/computeGridDimensions.ts.
+// 6, 9, 12 pairs: an even +3 step per level. 10 (the original hard) broke that pattern
+// (+3, then only +1) and didn't feel meaningfully harder than medium.
 export const LEVELS = {
-  easy: { label: "Fácil", cols: 4, rows: 3, pairs: 6 },
-  // 6x3, not 4x4: cols must stay strictly greater than rows (see comment above), and
-  // 4x4 is a square grid — it violated its own invariant until the domain test caught it.
-  medium: { label: "Medio", cols: 6, rows: 3, pairs: 9 },
-  hard: { label: "Difícil", cols: 5, rows: 4, pairs: 10 },
+  easy: { label: "Fácil", pairs: 6 },
+  medium: { label: "Medio", pairs: 9 },
+  hard: { label: "Difícil", pairs: 12 },
 } as const satisfies Record<LevelId, LevelConfig>;
 
 // Object.entries(LEVELS) widens keys to `string`, which would need an `as LevelId[]`
