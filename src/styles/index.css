@@ -870,6 +870,33 @@ body {
   font-size: 0.7rem;
   box-shadow: inset 0 0 0 1px var(--color-border);
 }
+
+/* Fills the tile: a plain <button> reset so the whole card is tappable, not just its
+   caption. position: absolute (not static) makes it the positioned ancestor that
+   PlaceImage's own absolute-fill layers and the caption span below resolve against —
+   the exact same geometry the tile had before it became a button. */
+.place-gallery-button {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.place-gallery-button:active {
+  transform: scale(0.96);
+}
+/* A ring instead of a scale/shadow change on hover: a hover state that resizes the tile
+   would jostle its neighbors in the grid. */
+.place-gallery-button:hover,
+.place-gallery-button:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: -3px;
+}
+
 .place-gallery-item span {
   position: absolute;
   inset-inline: 0;
@@ -877,6 +904,103 @@ body {
   padding: 0.25rem;
   background: linear-gradient(to top, rgb(11 53 80 / 88%), transparent);
   color: white;
+}
+
+/* --- Place detail modal (opened from the post-game gallery) --- */
+
+/* A second, independent overlay on top of the victory/defeat one: z-index: 200 beats its
+   z-index: 100 (see the comment there), so it doesn't matter that this one is a
+   descendant deep inside that modal's DOM — position: fixed plus a higher z-index still
+   wins the stacking order. */
+.place-detail-overlay {
+  z-index: 200;
+}
+
+/* A sibling of .place-detail-panel, not its parent: absolutely filling the overlay
+   underneath the (grid-centered) panel, so it only catches clicks that land outside the
+   panel's own bounds — see the comment in PlaceDetailModal.tsx. */
+.place-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.place-detail-panel {
+  position: relative; /* stacks above the backdrop by DOM order, no z-index needed */
+  width: min(720px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1.5rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-align: left;
+  box-shadow: 0 30px 60px -20px rgb(11 53 80 / 45%);
+}
+/* Side by side once there's room for both a legible photo and multi-line paragraphs
+   without either one getting cramped. */
+@media (min-width: 640px) {
+  .place-detail-panel {
+    flex-direction: row;
+    max-height: min(600px, 90vh);
+  }
+}
+
+.place-detail-media {
+  position: relative;
+  flex: 0 0 auto;
+  aspect-ratio: 1 / 1;
+  background: var(--color-page-start);
+}
+@media (min-width: 640px) {
+  .place-detail-media {
+    flex: 0 0 44%;
+    aspect-ratio: auto; /* the row's own height governs it instead, via align-items: stretch */
+  }
+}
+
+.place-detail-close {
+  position: absolute;
+  top: clamp(0.5rem, 2vmin, 1rem);
+  right: clamp(0.5rem, 2vmin, 1rem);
+  z-index: 1;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 6px 16px -8px rgb(11 53 80 / 55%);
+}
+
+.place-detail-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: clamp(1.1rem, 3vmin, 1.75rem);
+}
+
+.place-detail-name {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.6vmin, 1.6rem);
+  color: var(--color-ink);
+}
+
+.place-detail-location {
+  margin: 0;
+  color: var(--color-brand-dark);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.7vmin, 1rem);
+}
+
+.place-detail-paragraph {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: clamp(0.85rem, 1.6vmin, 1rem);
+  line-height: 1.55;
 }
 
 /* Deliberately small and secondary: saving a name is optional, "Siguiente nivel" /

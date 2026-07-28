@@ -40,4 +40,18 @@ describe("CATALOG", () => {
     const maxPairs = Math.max(...Object.values(LEVELS).map((level) => level.pairs));
     expect(CATALOG.length).toBeGreaterThanOrEqual(maxPairs);
   });
+
+  it("has a non-empty location for every place", () => {
+    // Backs PlaceDetailModal — an empty location would render as blank space next to
+    // the pin icon instead of failing loudly here.
+    const missing = CATALOG.filter((place) => place.location.trim() === "").map((p) => p.id);
+    expect(missing).toEqual([]);
+  });
+
+  it("has two non-empty description paragraphs for every place", () => {
+    const invalid = CATALOG.filter(
+      (place) => place.description.length !== 2 || place.description.some((p) => p.trim() === ""),
+    ).map((p) => p.id);
+    expect(invalid).toEqual([]);
+  });
 });

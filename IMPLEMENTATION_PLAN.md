@@ -333,7 +333,8 @@ flip-and-match/
 │   │       ├── tauriFullscreen.ts
 │   │       └── index.ts             # detecta entorno y exporta el adaptador
 │   ├── shared/
-│   │   ├── ui/                      # Button, Modal, Tabs, PlaceImage, PlacePlaceholder (ver §19)
+│   │   ├── ui/                      # Button, Modal, Tabs, PlaceImage, PlacePlaceholder,
+│   │   │                            # PlaceDetailModal (ver §19, §21)
 │   │   ├── lib/
 │   │   │   ├── shuffle.ts
 │   │   │   ├── createId.ts
@@ -354,13 +355,17 @@ flip-and-match/
 
 ```ts
 // features/catalog/types.ts
-// Sin campo `region`: la región de cada lugar (ver tabla del catálogo, §20) es solo
-// documentación del contenido educativo, no un dato que ningún componente lea todavía.
-// Un campo opcional sin lector real es código muerto que noUnusedLocals no detecta.
+// location y description sí tienen un lector real: el PlaceDetailModal que se abre al
+// tocar una foto en la galería de "lugares aprendidos" del modal de victoria/derrota
+// (ver §21). description es una tupla fija de dos elementos, no `readonly string[]`: el
+// modal siempre pinta exactamente dos párrafos, así que el tipo mismo hace irrepresentable
+// un lugar con cero, uno o cinco.
 export interface TouristPlace {
   readonly id: string; // 'machu-picchu'
   readonly name: string; // 'Machu Picchu'
   readonly imageUrl: string; // './images/places/machu-picchu.webp'
+  readonly location: string; // 'Cusco, Perú'
+  readonly description: readonly [string, string];
 }
 ```
 
@@ -1720,6 +1725,53 @@ kebab-case ASCII.
 
 Pendiente para después del MVP: normalizar todo a `.webp` y bajar el peso — hoy la carpeta
 son ~7 MB y se copia entera al bundle. No bloquea nada, pero el instalador lo nota.
+
+Cada lugar lleva además `location` (departamento, ej. "Cajamarca, Perú") y `description`
+—una tupla de exactamente dos párrafos— con la reseña histórica que muestra el modal de
+detalle (§21). Dos invariantes más viven junto a las de arriba: `location` no vacío y
+`description` con sus dos párrafos no vacíos, para que un dato faltante falle el test en
+vez de dejar el modal con un hueco en blanco.
+
+---
+
+## 21. Modal de detalle de lugar
+
+Al tocar una foto en la galería de "lugares aprendidos" (victoria o derrota, §12) se abre
+un segundo modal con la foto completa y, al lado, el nombre, la ubicación y la reseña del
+lugar en dos párrafos.
+
+```
+┌─────────────────────────────────────────────┐
+│                                        [ ✕ ] │
+│  ┌───────────────┐  Machu Picchu             │
+│  │               │  📍 Cusco, Perú            │
+│  │     foto       │                           │
+│  │               │  Párrafo 1 (~3 líneas)…    │
+│  │               │                           │
+│  └───────────────┘  Párrafo 2 (~3 líneas)…    │
+└─────────────────────────────────────────────┘
+```
+
+Es un `modal-overlay` **independiente**, no anidado dentro del `Modal` de victoria/derrota:
+se abre y se cierra por su cuenta (`useState<TouristPlace | null>` en `PlaceGallery.tsx`)
+sin que el modal exterior sepa que existe. Para que ambos overlays convivan sin pelear por
+la capa visual, este lleva `z-index: 200` contra el `100` del overlay exterior (§10) — más
+alto siempre gana, sin importar que este sea un descendiente profundo en el DOM del primero.
+
+**El fondo (backdrop) es un `<button>`, hermano del panel, no su padre.** La alternativa
+obvia —un `onClick` en el overlay que cierra, y un `stopPropagation()` en el panel para que
+un clic dentro no lo cierre— falla el lint de accesibilidad (`noStaticElementInteractions`,
+`useKeyWithClickEvents`) porque un `<div>` con `onClick` no es operable por teclado. Con el
+backdrop como botón absoluto (`inset: 0`) por debajo del panel en el DOM, un clic dentro del
+panel simplemente nunca llega al backdrop —son hermanos, no hay nada que interceptar— y un
+botón nativo ya es operable por teclado y lector de pantalla sin código extra.
+
+La imagen reutiliza `PlaceImage` (§19): la copia nítida con `contain` más el fondo
+difuminado, la misma técnica del tablero, así que una foto vertical o apaisada nunca se
+recorta también aquí. En pantallas de al menos 640px el panel pasa de columna a fila —foto
+a la izquierda, texto a la derecha— porque hay espacio para las dos sin apretar ninguna;
+por debajo de eso, la foto va arriba y el texto abajo, con el panel entero scrolleable si
+el contenido no cabe.
 
 ---
 

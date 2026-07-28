@@ -11,7 +11,13 @@ const SETTINGS: GameSettings = {
   missLockoutMs: 900,
 };
 
-const place = (id: string) => ({ id, name: id, imageUrl: `./${id}.webp` });
+const place = (id: string) => ({
+  id,
+  name: id,
+  imageUrl: `./${id}.webp`,
+  location: "Test",
+  description: ["A", "B"] as const,
+});
 
 const makeCards = (): readonly Card[] => [
   { instanceId: "a#0", place: place("a"), isFlipped: false, isMatched: false },

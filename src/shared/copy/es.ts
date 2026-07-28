@@ -50,4 +50,9 @@ export const copy = {
     empty: "Aún no hay puntajes guardados para este nivel.",
     back: "Volver al menú",
   },
+  placeDetail: {
+    close: "Cerrar",
+    location: "Ubicación",
+    viewDetails: (name: string): string => `Ver más sobre ${name}`,
+  },
 } as const;

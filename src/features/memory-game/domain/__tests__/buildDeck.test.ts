@@ -6,6 +6,8 @@ const CATALOG: readonly TouristPlace[] = Array.from({ length: 6 }, (_, i) => ({
   id: `place-${i}`,
   name: `Place ${i}`,
   imageUrl: `./place-${i}.webp`,
+  location: "Test",
+  description: ["A", "B"],
 }));
 
 // Deterministic sequence so tests don't depend on Math.random.
