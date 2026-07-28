@@ -309,9 +309,11 @@ flip-and-match/
 │   │   │   ├── components/
 │   │   │   │   ├── Board.tsx
 │   │   │   │   ├── CardItem.tsx
-│   │   │   │   ├── GameSidebar.tsx
+│   │   │   │   ├── GameHeader.tsx    # header horizontal compacto, no sidebar — ver §10
+│   │   │   │   ├── LivesIndicator.tsx
+│   │   │   │   ├── PlaceGallery.tsx  # shared by both modals below
 │   │   │   │   ├── VictoryModal.tsx
-│   │   │   │   └── DefeatModal.tsx  # shares layout with VictoryModal via shared/ui
+│   │   │   │   └── DefeatModal.tsx   # shares Modal shell with VictoryModal via shared/ui
 │   │   │   └── index.ts
 │   │   └── leaderboard/
 │   │       ├── domain/
@@ -560,7 +562,7 @@ correcto de TypeScript para configuración estática.
 | RF-05 | Un toque voltea una carta. Al voltear la segunda, el resultado se resuelve de inmediato y el estado pasa a `EVALUATING_MATCH` o `EVALUATING_MISS` (§7); la entrada queda bloqueada en ambos.                                                                                                                                                                                                                            |
 | RF-06 | **Acierto:** las cartas ya quedan marcadas como emparejadas al entrar a `EVALUATING_MATCH`, y **aparece el nombre del lugar**. Bloqueo de `settings.matchLockoutMs` (600 ms).                                                                                                                                                                                                                                           |
 | RF-07 | **Fallo:** en `EVALUATING_MISS` se incrementa el contador de fallos de inmediato; las cartas vuelven a taparse **al resolver el bloqueo**, no antes. Bloqueo de `settings.missLockoutMs` (900 ms).                                                                                                                                                                                                                      |
-| RF-08 | **Vidas: `settings.maxLives`, configurable, por defecto 3, igual en todos los niveles.** `null` desactiva la derrota (modo práctica). Se muestran en el sidebar como corazones/íconos **durante toda la partida**; cada fallo apaga uno. Con `maxLives: null` no se dibuja el bloque de vidas.                                                                                                                          |
+| RF-08 | **Vidas: `settings.maxLives`, configurable, por defecto 3, igual en todos los niveles.** `null` desactiva la derrota (modo práctica). Se muestran en el header como corazones/íconos **durante toda la partida**; cada fallo apaga uno. Con `maxLives: null` no se dibuja el bloque de vidas.                                                                                                                          |
 | RF-09 | Al fallar con **cero vidas restantes** (`maxLives` no nulo): estado `DEFEAT`, se detiene el cronómetro y se abre el modal de derrota. La resolución del par (volver a tapar, bloqueo de fallo) ocurre igual antes de mostrar el modal, para que el jugador vea el error que lo eliminó. `DEFEAT` se comprueba antes que `VICTORY`: nunca se declara victoria por el último par si ese mismo fallo agotó la última vida. |
 | RF-10 | Puntaje: `max(0, 10000 - segundos * 10 - fallos * 100)`. Se muestra en vivo y se calcula igual en victoria y en derrota.                                                                                                                                                                                                                                                                                                |
 | RF-11 | Al emparejar el último par **con al menos una vida restante (o `maxLives: null`)**: se detiene el cronómetro, estado `VICTORY`, se abre el modal de victoria.                                                                                                                                                                                                                                                           |
@@ -779,6 +781,8 @@ body,
   --shell-pad: clamp(0.5rem, 2vmin, 2rem);
   height: 100dvh;
   display: flex;
+  flex-direction: column; /* header arriba, tablero abajo — no sidebar lateral, ver nota */
+  gap: var(--shell-pad);
   overflow: clip; /* respaldo — la garantía es aritmética, no este recorte */
   padding: var(
     --shell-pad
@@ -786,10 +790,9 @@ body,
   box-sizing: border-box;
 }
 
-.sidebar {
-  flex: 0 0 clamp(180px, 16vw, 300px);
-  min-width: 0; /* si no, una etiqueta larga ("Pantalla completa") empuja el sidebar más allá de su base */
-  min-height: 0;
+.game-header {
+  flex: 0 0 auto; /* alto por contenido — el resto del alto es todo para el tablero */
+  min-width: 0;
   overflow: clip;
   overflow-wrap: anywhere;
 }
@@ -841,9 +844,14 @@ contenido del tablero. El único modo de fallo es `cell ≤ 0`; en el peor caso 
 mínimo táctil de 64 px (§11). **Ese número se revalida si cambia `--shell-pad` o se agrega un
 nivel con más columnas.**
 
-Si `container-type: size` da problemas en WebView2, la salida de emergencia es aritmética de
-viewport pura, a costa de fijar el ancho del sidebar en dos sitios:
-`--avail-w: calc(100vw - clamp(180px,16vw,300px) - 2 * var(--shell-pad))`.
+**Decisión de layout (post-Etapa 1): header horizontal compacto arriba, no sidebar lateral.**
+Con vidas/tiempo/puntaje en una franja delgada de altura fija (`flex: 0 0 auto`) sobre el
+tablero — en vez de una columna lateral — casi todo el alto del viewport queda para el
+tablero, que es lo crítico en pantallas 16:9 de altura ya escasa. El resto del contrato
+(cálculo de `--cell`, `container-type: size`, `min-height: 0`) es idéntico; solo cambia el eje
+de `.app-shell` de `row` a `column`. Si `container-type: size` da problemas en WebView2, la
+salida de emergencia es aritmética de viewport pura, a costa de fijar el alto del header en
+dos sitios: `--avail-h: calc(100dvh - var(--header-height) - 3 * var(--shell-pad))`.
 
 **El error clásico sigue siendo el mismo:** olvidar `min-width`/`min-height: 0` en un hijo
 flex o grid. Por defecto no se encoge por debajo del tamaño de su contenido, así que empuja

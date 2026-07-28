@@ -40,13 +40,333 @@ body {
   font-family: var(--font-body);
 }
 
-.app-shell {
+.btn {
+  min-width: 64px;
+  min-height: 64px;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--color-stone);
+  color: var(--color-bone);
+  font-family: var(--font-body);
+  font-size: clamp(0.9rem, 1.6vmin, 1.25rem);
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.btn:active {
+  background: var(--color-lagoon);
+}
+
+/* Menu and scores screens: simple centered stacks, not part of the zero-scroll board
+   contract below (they hold no board), but still full-height and non-scrolling. */
+.menu-screen,
+.scores-screen {
   height: 100dvh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow: clip; /* backstop — see IMPLEMENTATION_PLAN.md §10 for the sizing contract itself */
+  gap: 1.5rem;
+  overflow: clip;
   font-family: var(--font-display);
+  text-align: center;
+  padding: clamp(1rem, 4vmin, 3rem);
+}
+
+.menu-levels {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* --- Zero-scroll layout contract (IMPLEMENTATION_PLAN.md §10) ---
+   The bottom row of cards being fully visible is the real success criterion, not the
+   absence of a scrollbar: .app-shell clips, so a broken layout here fails silently. */
+
+.app-shell {
+  --shell-pad: clamp(0.5rem, 2vmin, 2rem);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--shell-pad);
+  overflow: clip; /* backstop, not the guarantee — see the cell-size math below */
+  padding: var(--shell-pad);
+  box-sizing: border-box;
+  font-family: var(--font-body);
+}
+
+/* A compact top bar, not a full-height sidebar: it needs to stay small so the board
+   below keeps almost the entire viewport height. flex: 0 0 auto sizes it to content and
+   the cell-size formula below already treats whatever's left as the only budget it has. */
+.game-header {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 2vw, 1.5rem);
+  padding: clamp(0.5rem, 1.5vmin, 1rem) clamp(0.75rem, 2vw, 1.5rem);
+  border-radius: 0.75rem;
+  background: var(--color-stone);
+}
+
+.game-header-level {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 2vmin, 1.5rem);
+}
+
+.game-header-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  font-size: clamp(0.85rem, 1.8vmin, 1.25rem);
+}
+
+.game-header-stat-label {
+  opacity: 0.7;
+}
+
+.game-header-stat-value {
+  font-variant-numeric: tabular-nums; /* fixed digit width — a jittering clock is very
+    noticeable on a large display */
+  color: var(--color-gold);
+}
+
+/* Still 64x64 (§11 rule 4): a touch target this is not the place to shrink, even
+   though the header itself stays visually compact. */
+.btn-icon {
+  min-width: 64px;
+  min-height: 64px;
+  padding: 0.5rem;
+  line-height: 1;
+  font-size: 1.25rem;
+}
+.game-header .btn-icon {
+  margin-left: auto;
+}
+
+.lives-indicator {
+  display: flex;
+  gap: 0.3em;
+}
+
+.life-icon {
+  width: clamp(16px, 2.4vmin, 28px);
+  height: clamp(16px, 2.4vmin, 28px);
+  border-radius: 50%;
+  background: var(--color-gold);
+  transition: background 200ms ease;
+}
+.life-icon[data-lost="true"] {
+  background: none;
+  box-shadow: inset 0 0 0 2px var(--color-cochineal);
+}
+
+.board-area {
+  flex: 1;
+  min-width: 0; /* flex children default to min-width: auto */
+  min-height: 0; /* same for the cross axis — the #1 cause of scroll/clip bugs */
+  container-type: size; /* contents can never grow this box — the cell formula depends on it */
+  display: grid;
+  place-items: center;
+}
+
+.board {
+  --gap: clamp(0.25rem, 1vmin, 1.25rem);
+  /* Both candidates subtract the gaps, so the cell is exactly square and
+     cols*cell + (cols-1)*gap <= 100cqw holds by construction, for both axes. */
+  --cell: min(
+    (100cqw - (var(--cols) - 1) * var(--gap)) /
+    var(--cols),
+    (100cqh - (var(--rows) - 1) * var(--gap)) /
+    var(--rows)
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell));
+  grid-template-rows: repeat(var(--rows), var(--cell));
+  gap: var(--gap);
+  min-width: 0;
+  min-height: 0;
+  touch-action: none; /* manipulation on <html> still allows pinch-zoom here otherwise */
+}
+
+/* --- Card --- */
+
+.card {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: clip;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
+  perspective: 1000px;
+}
+.card:disabled {
+  cursor: default;
+}
+
+.card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform var(--flip-duration) var(--flip-ease);
+}
+/* Ascending specificity, in order: base state, then the flipped variant, then the
+   interaction states — each rule below only ever needs to override the one above it. */
+.card[data-flipped="true"] .card-inner {
+  transform: rotateY(180deg);
+}
+.card:active:not(:disabled) .card-inner {
+  transform: scale(0.97);
+}
+.card[data-flipped="true"]:active:not(:disabled) .card-inner {
+  transform: rotateY(180deg) scale(0.97);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 0.5rem;
+  overflow: clip;
+}
+
+.card-face--back {
+  background: var(--color-stone);
+  background-image: repeating-linear-gradient(45deg, var(--color-gold) 0 2px, transparent 2px 12px);
+  /* The woven-back signature (IMPLEMENTATION_PLAN.md §9): the pattern's hue shifts
+     slightly per grid position so the face-down board reads as one continuous textile,
+     not twenty identical tiles. */
+  filter: hue-rotate(calc(var(--card-index) * 2.4deg));
+}
+
+.card-face--front {
+  transform: rotateY(180deg);
+  background: var(--color-stone);
+}
+
+.place-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card-caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: clamp(0.25rem, 1vmin, 0.75rem);
+  font-family: var(--font-display);
+  font-size: clamp(0.7rem, 1.6vmin, 2rem);
+  color: var(--color-bone);
+  background: linear-gradient(to top, rgb(16 22 44 / 90%), transparent);
+  text-align: center;
+  /* Absolutely positioned, never in flow: if the name entered the flow on match, the
+     card would change height and the whole grid would jump. */
+  transform: translateY(100%);
+  transition: transform 320ms var(--flip-ease);
+}
+.card[data-matched="true"] .card-caption {
+  transform: translateY(0);
+}
+
+/* --- Victory / defeat modal --- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vmin, 3rem);
+  background: rgb(16 22 44 / 80%);
+  overflow: clip; /* the overlay must never introduce its own scroll either */
+}
+
+.modal-panel {
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: clamp(1rem, 3vmin, 2rem);
+  border-radius: 1rem;
+  background: var(--color-stone);
+  text-align: center;
+  font-family: var(--font-display);
+}
+
+.modal-score {
+  font-size: clamp(1.1rem, 2.5vmin, 1.75rem);
+  color: var(--color-gold);
+}
+
+.place-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.place-gallery-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 0.5rem;
+  overflow: clip;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+}
+.place-gallery-item span {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 0.25rem;
+  background: linear-gradient(to top, rgb(16 22 44 / 90%), transparent);
+  color: var(--color-bone);
+}
+
+.modal-save-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.modal-name-input {
+  flex: 1 1 200px;
+  min-height: 64px;
+  padding: 0 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--color-ink);
+  color: var(--color-bone);
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+.modal-saved {
+  color: var(--color-lagoon);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

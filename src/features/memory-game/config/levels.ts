@@ -16,3 +16,7 @@ export const LEVELS = {
   medium: { label: "Medio", cols: 6, rows: 3, pairs: 9 },
   hard: { label: "Difícil", cols: 5, rows: 4, pairs: 10 },
 } as const satisfies Record<LevelId, LevelConfig>;
+
+// Object.entries(LEVELS) widens keys to `string`, which would need an `as LevelId[]`
+// cast to iterate safely. This stays typed without one.
+export const LEVEL_IDS: readonly LevelId[] = ["easy", "medium", "hard"];
