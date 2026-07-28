@@ -6,6 +6,12 @@
   --color-app-bg: #009d9e; /* flat brand teal behind every screen — see body below */
   --color-page-start: #eaf7fb; /* pale tint reused for pill/chip backgrounds, not the page itself */
   --color-surface: #ffffff;
+  /* Frosted-glass surface for the header/footer chrome (game-brand, stat-pill,
+     game-footer) — translucent + blurred, not flat white, so those bars read as a layer
+     floating over the teal page background instead of blending into the solid white
+     cards below them. The cards themselves stay fully opaque var(--color-surface) on
+     purpose — only the surrounding chrome gets the glass treatment. */
+  --color-glass-surface: rgb(255 255 255 / 78%);
   --color-ink: #0b3550; /* headings, primary text on light surfaces */
   --color-muted: #5b7688; /* secondary text */
   --color-border: #e3edf2;
@@ -284,7 +290,9 @@ body {
   min-width: 0;
   padding: clamp(0.3rem, 1vmin, 0.55rem) clamp(0.4rem, 1.4vw, 0.8rem);
   border-radius: clamp(1rem, 3vmin, 1.5rem);
-  background: var(--color-surface);
+  background: var(--color-glass-surface);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
   box-shadow: 0 10px 26px -16px rgb(11 53 80 / 35%);
 }
 
@@ -353,7 +361,9 @@ body {
   min-width: 0;
   padding: clamp(0.25rem, 0.9vmin, 0.5rem) clamp(0.3rem, 1vw, 0.7rem);
   border-radius: clamp(0.75rem, 2.2vmin, 1.2rem);
-  background: var(--color-surface);
+  background: var(--color-glass-surface);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
   box-shadow: 0 8px 20px -16px rgb(11 53 80 / 55%);
 }
 
@@ -594,7 +604,9 @@ body {
   gap: clamp(0.4rem, 1.5vw, 0.9rem);
   padding: clamp(0.3rem, 1vmin, 0.55rem) clamp(0.4rem, 1.4vw, 0.8rem);
   border-radius: clamp(1rem, 3vmin, 1.5rem);
-  background: var(--color-surface);
+  background: var(--color-glass-surface);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
   box-shadow: 0 10px 26px -16px rgb(11 53 80 / 35%);
 }
 
