@@ -4,6 +4,7 @@ export interface LevelConfig {
   readonly label: string;
   readonly pairs: number;
   readonly maxLives: number;
+  readonly previewDurationMs: number;
 }
 
 // No cols/rows here: the board orientation depends on the screen (portrait vs
@@ -14,10 +15,12 @@ export interface LevelConfig {
 // Lives rise with the level (3/4/5) rather than falling: a harder board means more pairs
 // to hold in memory and more chances to miss, so a flat or shrinking life count would
 // stack two difficulty knobs on top of each other instead of just one.
+// Preview duration rises with the level too (1.5s/2s/2.5s): more cards to glimpse in the
+// same look needs more time to be a fair preview rather than a blink.
 export const LEVELS = {
-  easy: { label: "Fácil", pairs: 6, maxLives: 3 },
-  medium: { label: "Medio", pairs: 9, maxLives: 4 },
-  hard: { label: "Difícil", pairs: 12, maxLives: 5 },
+  easy: { label: "Fácil", pairs: 6, maxLives: 3, previewDurationMs: 1500 },
+  medium: { label: "Medio", pairs: 9, maxLives: 4, previewDurationMs: 2000 },
+  hard: { label: "Difícil", pairs: 12, maxLives: 5, previewDurationMs: 2500 },
 } as const satisfies Record<LevelId, LevelConfig>;
 
 // Object.entries(LEVELS) widens keys to `string`, which would need an `as LevelId[]`

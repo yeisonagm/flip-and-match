@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Flip & Match",
+  "productName": "Descubre Perú",
   "mainBinaryName": "flip-and-match",
   "version": "0.1.0",
   "identifier": "com.sygma.flip-and-match",
@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "Flip & Match",
+        "title": "Descubre Perú",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,

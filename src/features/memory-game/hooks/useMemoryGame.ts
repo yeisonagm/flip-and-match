@@ -17,9 +17,14 @@ export function useMemoryGame(levelId: LevelId, settings: GameSettings = DEFAULT
     const level = LEVELS[levelId];
     const cards = buildDeck(CATALOG, level.pairs, { previousPlaceIds: excluding });
     setPreviousPlaceIds([...new Set(cards.map((c) => c.place.id))]);
-    // maxLives comes from the level, not the settings prop: harder levels grant more
-    // lives (§ LEVELS comment), so it can't be a single fixed value across all three.
-    const levelSettings = { ...settings, maxLives: level.maxLives };
+    // maxLives and preview.durationMs come from the level, not the settings prop:
+    // harder levels grant more lives and a longer preview (§ LEVELS comment), so neither
+    // can be a single fixed value across all three.
+    const levelSettings = {
+      ...settings,
+      maxLives: level.maxLives,
+      preview: { ...settings.preview, durationMs: level.previewDurationMs },
+    };
     dispatch({ type: "START", cards, levelId, settings: levelSettings, now: performance.now() });
   };
 
@@ -33,12 +38,15 @@ export function useMemoryGame(levelId: LevelId, settings: GameSettings = DEFAULT
 
   useEffect(() => {
     if (state.status !== "PREVIEW") return;
+    // state.settings, not the hook's own `settings` param: START merges in the level's
+    // previewDurationMs (see `deal` above), and the outer `settings` prop never reflects
+    // that override — reading it here would silently ignore the per-level duration.
     const id = window.setTimeout(
       () => dispatch({ type: "END_PREVIEW", now: performance.now() }),
-      settings.preview.durationMs,
+      state.settings.preview.durationMs,
     );
     return () => window.clearTimeout(id);
-  }, [state.status, settings.preview.durationMs]);
+  }, [state.status, state.settings.preview.durationMs]);
 
   useEffect(() => {
     if (!isEvaluating(state.status)) return;
