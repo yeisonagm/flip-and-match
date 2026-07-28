@@ -2,7 +2,7 @@
 // failure #5.
 export const copy = {
   menu: {
-    title: "Flip & Match",
+    title: "Descubre Perú",
     subtitle: "Memoria de lugares turísticos del Perú",
     play: (levelLabel: string): string => `Jugar ${levelLabel}`,
     pairsLabel: (pairs: number): string => `${pairs} pares`,

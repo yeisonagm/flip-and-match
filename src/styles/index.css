@@ -124,8 +124,8 @@ body {
 }
 
 .menu-badge {
-  width: clamp(64px, 12vmin, 96px);
-  height: clamp(64px, 12vmin, 96px);
+  width: clamp(128px, 24vmin, 192px);
+  height: clamp(128px, 24vmin, 192px);
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 14px 28px -14px rgb(11 53 80 / 45%);
@@ -347,6 +347,10 @@ body {
 }
 
 .stat-pill-value {
+  /* Takes the whole pill minus the icon chip and centres inside it, so the four values
+     sit on a common rhythm instead of each drifting with its own text width. */
+  flex: 1;
+  text-align: center;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -425,10 +429,14 @@ body {
 }
 
 /* Steps are equal-width flex items, so -50%..50% of one spans exactly centre-to-centre
-   with its predecessor — no fixed offsets to re-tune when a level is added. */
+   with its predecessor — no fixed offsets to re-tune when a level is added.
+   z-index: 0 against the dot's z-index: 1 — the connector belongs to the step on its
+   right, which paints after its left neighbour, so without this it would run straight
+   over that neighbour's circle. */
 .level-step + .level-step::before {
   content: "";
   position: absolute;
+  z-index: 0;
   left: -50%;
   right: 50%;
   top: calc(var(--step-dot) / 2);
@@ -449,7 +457,8 @@ body {
 }
 
 .level-step-dot {
-  position: relative; /* above the connector line */
+  position: relative;
+  z-index: 1; /* above every connector line, including the next step's */
   display: grid;
   place-items: center;
   width: var(--step-dot);
@@ -675,13 +684,37 @@ body {
   box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
+/* Shared by <PlaceImage> and the generated <PlacePlaceholder> so the error fallback is
+   geometrically identical — zero layout shift by construction, not by luck. */
 .place-image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
+  object-fit: cover; /* only reaches the placeholder <svg>, which has no aspect problem */
+}
+
+/* Fills the letterbox the contained photo leaves. Over-scaled so the blur's own soft
+   edge stays outside the card (.card-face clips it). */
+.place-image-backdrop {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  filter: blur(16px) saturate(1.2) brightness(0.92);
+  transform: scale(1.2);
+}
+
+.place-image-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Whole photo, always — every place image is a different size and ratio, and cropping
+     to fit is what would cut the subject in half. */
+  object-fit: contain;
 }
 
 .card-caption {
@@ -711,6 +744,11 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
+  /* Declared, not inherited from DOM order: the overlay comes last in the markup but
+     that only wins against z-index: auto siblings. The stepper dots sit at z-index 1 to
+     clear their own connector lines, and without this they punch straight through the
+     modal — visible as three floating circles over the victory panel. */
+  z-index: 100;
   display: grid;
   place-items: center;
   padding: clamp(1rem, 4vmin, 3rem);

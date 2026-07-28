@@ -14,7 +14,7 @@ clonar y correr). Aquí está el _cómo_ y el _por qué_.
 |                         |                                                                 |
 | ----------------------- | --------------------------------------------------------------- |
 | **Nombre**              | Flip & Match                                                    |
-| **Qué es**              | Juego de memoria por parejas con 20 lugares turísticos del Perú |
+| **Qué es**              | Juego de memoria por parejas con 21 lugares turísticos del Perú |
 | **Para quién**          | Estudiantes y público general, en contexto educativo            |
 | **Dónde corre**         | Pizarra digital / TV táctil (principal), navegador (secundario) |
 | **Distribución**        | `.exe` de Windows (Tauri) + build estático desplegable          |
@@ -278,7 +278,7 @@ flip-and-match/
 ├── public/
 │   └── images/
 │       ├── card-back.svg
-│       └── places/                  # 20 archivos .webp, agregados a mano — ver §19 fallback
+│       └── places/                  # 21 fotos .jpg/.webp — ver §20 (un test valida que existan)
 ├── src/
 │   ├── app/
 │   │   ├── App.tsx                  # máquina de pantallas
@@ -795,9 +795,15 @@ Cada pastilla muestra solo un icono y su valor —el rótulo viaja como texto
 re-anuncia en cada tick—. Las cuatro son datos reales del dominio: puntaje, intentos
 (`matches + misses`), tiempo y vidas. No hay estadísticas inventadas.
 
-El **indicador de dificultad** (`LevelSteps.tsx`) marca posición, no progresión: todos los
-niveles se pueden elegir desde el menú, así que los posteriores al actual se dibujan
-apagados y **nunca con candado**, que afirmaría una regla de bloqueo que el juego no tiene.
+El **indicador de dificultad** (`LevelSteps.tsx`) recorre los tres niveles: los que quedan
+atrás llevan un check, el actual su número, y los que faltan un candado. El candado es un
+SVG delineado y no el emoji 🔒, porque el emoji se pinta con la fuente de color del sistema
+y no puede tomar el gris apagado del resto del paso. Las líneas conectoras van a `z-index: 0`
+contra el `z-index: 1` del círculo: la línea pertenece al paso de su derecha, que se pinta
+después de su vecino de la izquierda, así que sin eso pasaría **por encima** de ese círculo.
+Ese mismo `z-index: 1` obligó a declarar `z-index: 100` en `.modal-overlay` — el overlay va
+último en el marcado, pero eso solo le gana a hermanos con `z-index: auto`, y los tres
+círculos atravesaban el modal de victoria.
 
 **El footer** (`GameFooter.tsx`) muestra el progreso de la partida — "N / pairs pares",
 con una barra de relleno — y un botón para reiniciar el nivel actual sin pasar por el
@@ -1582,46 +1588,43 @@ tiempo y puntaje.
 `DEFEAT` se comprueba **antes** que `VICTORY` al resolver un par: un fallo que agota la
 última vida nunca resuelve a victoria, aunque fuera el último par (RF-09).
 
+### Cómo se encuadra una foto en la carta
+
+Las fotos reales llegan con cualquier tamaño y cualquier relación de aspecto (verticales,
+apaisadas, cuadradas), y la celda es siempre **cuadrada**. Las dos opciones de una sola capa
+son malas: `object-fit: cover` llena la carta pero **recorta** —una foto vertical en una
+celda cuadrada pierde el monumento fuera de cuadro— y `object-fit: contain` muestra la foto
+entera pero deja franjas vacías.
+
+`PlaceImage` usa **dos capas del mismo archivo**: la copia nítida va con `contain` (nunca se
+recorta nada, no hay zoom) y una copia difuminada y sobre-escalada del mismo archivo rellena
+lo que la primera no cubre. Ni espacio muerto ni recorte, y el mismo archivo, así que no hay
+una segunda descarga. El sobre-escalado (`transform: scale(1.2)`) deja el borde blando del
+desenfoque fuera de la carta, que `.card-face` recorta.
+
 ### Fallback cuando falta la imagen
 
-Las imágenes de los 20 lugares se agregan manualmente más adelante — el juego debe ser
-jugable **hoy**, con `public/images/places/` vacío. `PlaceImage` renderiza un `<img>` y, ante
-`onError`, cambia a un placeholder SVG generado por lugar: inicial + color derivados por hash
-del `id`, determinista.
-
-```tsx
-// shared/ui/PlaceImage.tsx
-export function PlaceImage({ place }: { readonly place: TouristPlace }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <PlacePlaceholder placeId={place.id} />;
-  return (
-    <img
-      className="place-image"
-      src={place.imageUrl}
-      alt="" // decorativo: el nombre lo aporta el aria-label del <button>
-      draggable={false}
-      onError={() => setFailed(true)}
-    />
-  );
-}
-```
+`PlaceImage` mantiene el `onError` → `PlacePlaceholder`: un SVG generado por lugar con color
+derivado por hash del `id`, determinista. Ya no es el modo normal de juego (las 21 fotos
+están en `public/images/places/`), pero sigue siendo la red de seguridad si un archivo se
+renombra o no se copia al empaquetar.
 
 Por qué funciona sin trampas:
 
-- **Determinista por `id`** → las dos cartas del par se ven idénticas; el tablero es
-  emparejable sin una sola imagen real, hoy mismo.
+- **Determinista por `id`** → las dos cartas del par se ven idénticas; el tablero sigue
+  siendo emparejable aunque falten todas las imágenes.
 - El SVG lleva `aria-hidden="true"` — el nombre lo aporta el `aria-label` del `<button>`
   contenedor, que es genérico ("Carta oculta") mientras la carta está boca abajo. Es la misma
   regla que protege a las imágenes reales: ambas caras de la carta están siempre en el árbol
   de accesibilidad (`backface-visibility` es solo un efecto de pintado), así que un
   `alt={place.name}` fijo filtraría los pares a cualquier lector de pantalla.
-- `<img>` y `PlacePlaceholder` comparten `position: absolute; inset: 0; object-fit: cover`,
-  así que el cambio es geométricamente idéntico: **cero salto de layout por construcción**.
-- Sin registro de "qué imágenes existen" — `onError` basta.
+- Las dos ramas comparten `.place-image` (`position: absolute; inset: 0`), así que el cambio
+  es geométricamente idéntico: **cero salto de layout por construcción**.
+- Sin registro de "qué imágenes existen" en tiempo de ejecución — `onError` basta. La
+  verificación real la hace un test (§20), que es donde un archivo faltante debe fallar.
 
 El precargado de §14 sigue existiendo pero **no bloquea la partida**: es fire-and-forget, no
-un `await` en el camino crítico. Con 20 imágenes ausentes son 20 rechazos silenciosos y cero
-espera.
+un `await` en el camino crítico.
 
 ---
 
@@ -1643,12 +1646,21 @@ return shuffle(deck, rng);
 Un `flatMap` que siempre emite dos cartas por lugar hace el desbalance irrepresentable. Los
 `instanceId` se derivan del `id` — únicos por construcción, sin necesidad de `createId()`.
 
-Tres invariantes se verifican en tests de dominio (§15):
+Invariantes verificadas en tests (§15):
 
 - **Grilla:** `cols * rows === totalCards` para ambas orientaciones, en `computeGridDimensions`.
 - **Catálogo:** todos los `id` son únicos (un `id` repetido produciría cuatro cartas del mismo
   lugar) y `catalog.length >= max(pairs)` sobre todos los niveles — al menos **12 lugares**
   para el nivel difícil.
+- **Imágenes:** cada `imageUrl` del catálogo apunta a un archivo que **existe** en
+  `public/images/places/`, y ningún archivo de esa carpeta queda sin usar. Es la única
+  invariante que nada más puede detectar: un `id` mal escrito o una extensión cambiada no
+  produce ningún error, solo dibuja el placeholder genérico — que parece una decisión de
+  diseño. El test lo resuelve con `import.meta.glob` (relativo a la raíz de Vite, así que no
+  depende del directorio de trabajo, y no arrastra tipos de Node al `tsconfig` del navegador).
+- **Rutas ASCII:** ninguna `imageUrl` lleva ñ ni tildes. Un `baños-del-inca.webp` funciona
+  perfectamente en `pnpm dev` y falla **solo dentro del .exe**, donde la ruta tiene que
+  sobrevivir a `tauri.localhost` y al instalador NSIS.
 
 "No repite el mazo anterior" (RF-03) se implementa como parámetro puro
 `previousPlaceIds: readonly string[]`, con reintento acotado a 10 intentos antes de aceptar
@@ -1656,31 +1668,37 @@ el resultado — nunca un bucle abierto.
 
 ### Catálogo de lanzamiento
 
-20 lugares, `id` en kebab-case. El archivo `public/images/places/<id>.webp` debe llamarse
-igual que el `id`. Cobertura por regiones, no solo Cusco:
+21 lugares, uno por archivo en `public/images/places/`. La carpeta mezcla `.jpg` y `.webp`,
+así que `imageUrl` **lleva la extensión literal** en vez de derivarla del `id`: derivarla
+haría un 404 silencioso en la mitad del mazo. El `id` es el nombre base del archivo, en
+kebab-case ASCII.
 
-| `id`                        | Nombre                       | Región        |
-| --------------------------- | ---------------------------- | ------------- |
-| `machu-picchu`              | Machu Picchu                 | Cusco         |
-| `sacsayhuaman`              | Sacsayhuamán                 | Cusco         |
-| `vinicunca`                 | Vinicunca                    | Cusco         |
-| `choquequirao`              | Choquequirao                 | Cusco         |
-| `lago-titicaca`             | Lago Titicaca                | Puno          |
-| `canon-del-colca`           | Cañón del Colca              | Arequipa      |
-| `monasterio-santa-catalina` | Monasterio de Santa Catalina | Arequipa      |
-| `lineas-de-nazca`           | Líneas de Nazca              | Ica           |
-| `huacachina`                | Huacachina                   | Ica           |
-| `islas-ballestas`           | Islas Ballestas              | Ica           |
-| `reserva-de-paracas`        | Reserva Nacional de Paracas  | Ica           |
-| `caral`                     | Ciudad Sagrada de Caral      | Lima          |
-| `plaza-mayor-de-lima`       | Plaza Mayor de Lima          | Lima          |
-| `huascaran`                 | Nevado Huascarán             | Áncash        |
-| `laguna-69`                 | Laguna 69                    | Áncash        |
-| `chan-chan`                 | Chan Chan                    | La Libertad   |
-| `huaca-de-la-luna`          | Huaca de la Luna             | La Libertad   |
-| `kuelap`                    | Kuélap                       | Amazonas      |
-| `catarata-gocta`            | Catarata de Gocta            | Amazonas      |
-| `parque-nacional-del-manu`  | Parque Nacional del Manu     | Madre de Dios |
+| `id`                        | Nombre                       | Archivo |
+| --------------------------- | ---------------------------- | ------- |
+| `banos-del-inca`            | Baños del Inca               | `.webp` |
+| `canon-del-colca`           | Cañón del Colca              | `.jpg`  |
+| `chan-chan`                 | Chan Chan                    | `.jpg`  |
+| `cuarto-de-rescate`         | Cuarto del Rescate           | `.jpg`  |
+| `cumbemayo`                 | Cumbemayo                    | `.jpg`  |
+| `granja-porcon`             | Granja Porcón                | `.webp` |
+| `huaca-del-sol-y-luna`      | Huacas del Sol y la Luna     | `.jpg`  |
+| `huacachina`                | Huacachina                   | `.jpg`  |
+| `kuntur-wasi`               | Kuntur Wasi                  | `.jpg`  |
+| `lago-titicaca`             | Lago Titicaca                | `.jpg`  |
+| `laguna-de-humantai`        | Laguna Humantay              | `.jpg`  |
+| `laguna-san-nicolas`        | Laguna San Nicolás           | `.jpg`  |
+| `lineas-de-nazca`           | Líneas de Nazca              | `.jpg`  |
+| `machu-picchu`              | Machu Picchu                 | `.jpg`  |
+| `monasterio-santa-catalina` | Monasterio de Santa Catalina | `.jpg`  |
+| `montana-7-colores`         | Montaña de 7 Colores         | `.jpg`  |
+| `parque-nacional-huascaran` | Parque Nacional Huascarán    | `.jpg`  |
+| `plaza-mayor-de-lima`       | Plaza Mayor de Lima          | `.jpg`  |
+| `sacsayhuaman`              | Sacsayhuamán                 | `.jpg`  |
+| `santa-apolonia`            | Cerro Santa Apolonia         | `.jpg`  |
+| `ventanilla-de-otuzco`      | Ventanillas de Otuzco        | `.jpg`  |
+
+Pendiente para después del MVP: normalizar todo a `.webp` y bajar el peso — hoy la carpeta
+son ~7 MB y se copia entera al bundle. No bloquea nada, pero el instalador lo nota.
 
 ---
 
