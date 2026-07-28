@@ -930,12 +930,15 @@ body {
 
 /* Always one column — photo on top, text below — at every width, not just narrow
    screens: a side-by-side row was squeezing both the photo and the two paragraphs into
-   half the panel each. Wider and taller than the old two-column version so the text has
-   real room to breathe instead of wrapping into a cramped strip. */
+   half the panel each. Capped at 1024px, shrinking to fit narrower viewports via the
+   min() — never wider than that regardless of screen size. */
 .place-detail-panel {
   position: relative; /* stacks above the backdrop by DOM order, no z-index needed */
-  width: min(900px, 100%);
+  width: min(1024px, 100%);
   max-height: min(880px, 92vh);
+  overflow-x: clip; /* PlaceImage's blurred backdrop layer is deliberately 20% oversized
+    (see .place-image-backdrop) — .card-face clips it for the board, this clips it here.
+    Without it the panel grew a horizontal scrollbar from that one oversized layer. */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -949,6 +952,7 @@ body {
 .place-detail-media {
   position: relative;
   flex: 0 0 auto;
+  width: 100%;
   aspect-ratio: 16 / 9;
   background: var(--color-page-start);
 }
