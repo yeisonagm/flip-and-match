@@ -29,7 +29,7 @@ export const copy = {
     title: "¡Nivel completado!",
     subtitle: (levelLabel: string): string => `Dificultad ${levelLabel} superada`,
     gallerySubtitle: "Lugares que aprendiste",
-    saveQuestion: "¿Guardar tu puntaje? (opcional)",
+    saveQuestion: "¿Guardar tu puntaje?",
     playerNamePlaceholder: "Tu nombre",
     save: "Guardar",
     saved: "¡Puntaje guardado!",

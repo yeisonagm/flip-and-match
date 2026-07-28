@@ -1737,19 +1737,24 @@ vez de dejar el modal con un hueco en blanco.
 ## 21. Modal de detalle de lugar
 
 Al tocar una foto en la galería de "lugares aprendidos" (victoria o derrota, §12) se abre
-un segundo modal con la foto completa y, al lado, el nombre, la ubicación y la reseña del
-lugar en dos párrafos.
+un segundo modal con la foto completa arriba y, debajo, el nombre, la ubicación y la reseña
+del lugar en dos párrafos.
 
 ```
-┌─────────────────────────────────────────────┐
-│                                        [ ✕ ] │
-│  ┌───────────────┐  Machu Picchu             │
-│  │               │  📍 Cusco, Perú            │
-│  │     foto       │                           │
-│  │               │  Párrafo 1 (~3 líneas)…    │
-│  │               │                           │
-│  └───────────────┘  Párrafo 2 (~3 líneas)…    │
-└─────────────────────────────────────────────┘
+┌───────────────────────────────────────┐
+│                                  [ ✕ ] │
+│  ┌───────────────────────────────────┐ │
+│  │                                   │ │
+│  │               foto                │ │
+│  │                                   │ │
+│  └───────────────────────────────────┘ │
+│  Machu Picchu                          │
+│  📍 Cusco, Perú                        │
+│                                         │
+│  Párrafo 1 (~3 líneas)…                │
+│                                         │
+│  Párrafo 2 (~3 líneas)…                │
+└───────────────────────────────────────┘
 ```
 
 Es un `modal-overlay` **independiente**, no anidado dentro del `Modal` de victoria/derrota:
@@ -1768,10 +1773,13 @@ botón nativo ya es operable por teclado y lector de pantalla sin código extra.
 
 La imagen reutiliza `PlaceImage` (§19): la copia nítida con `contain` más el fondo
 difuminado, la misma técnica del tablero, así que una foto vertical o apaisada nunca se
-recorta también aquí. En pantallas de al menos 640px el panel pasa de columna a fila —foto
-a la izquierda, texto a la derecha— porque hay espacio para las dos sin apretar ninguna;
-por debajo de eso, la foto va arriba y el texto abajo, con el panel entero scrolleable si
-el contenido no cabe.
+recorta también aquí.
+
+**Siempre una sola columna** —foto arriba, texto abajo— en cualquier ancho, no solo en
+pantallas angostas: una fila lado a lado apretaba tanto la foto como los dos párrafos a la
+mitad del panel cada uno. El panel es más ancho (`min(900px, 100%)`) y más alto
+(`min(880px, 92vh)`) que el resto de modales de la app para darle a la reseña espacio real
+de lectura, con scroll propio si el contenido no cabe entero.
 
 ---
 
