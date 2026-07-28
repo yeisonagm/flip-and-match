@@ -529,14 +529,19 @@ export interface ScoreEntry {
 export interface LevelConfig {
   readonly label: string;
   readonly pairs: number;
+  readonly maxLives: number;
 }
 
 export const LEVELS = {
-  easy: { label: "Fácil", pairs: 6 },
-  medium: { label: "Medio", pairs: 9 },
-  hard: { label: "Difícil", pairs: 10 },
+  easy: { label: "Fácil", pairs: 6, maxLives: 3 },
+  medium: { label: "Medio", pairs: 9, maxLives: 4 },
+  hard: { label: "Difícil", pairs: 12, maxLives: 5 },
 } as const satisfies Record<LevelId, LevelConfig>;
 ```
+
+`maxLives` vive aquí, no como una sola constante: sube con el nivel (3/4/5) porque un
+tablero más grande da más ocasiones de fallar por pura carga de memoria — ver la nota junto
+a RF-08.
 
 **Sin `cols`/`rows` fijos por nivel.** Una versión anterior de este documento los fijaba
 por nivel asumiendo que el destino siempre iba a ser una pantalla 16:9 apaisada — pero la
@@ -556,30 +561,36 @@ correcto de TypeScript para configuración estática.
 
 ## 8. Reglas de juego
 
-| ID    | Regla                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RF-01 | La app abre en el Menú. Tres niveles + botón "Ver puntajes" + botón "Pantalla completa".                                                                                                                                                                                                                                                                                                                                |
-| RF-02 | Si `settings.preview.enabled`, estado `PREVIEW` durante `settings.preview.durationMs` (por defecto 2000 ms — 1500 ms resultó insuficiente para registrar más de una o dos cartas): todas las cartas visibles, entrada bloqueada, cronómetro en `00:00`. Si está desactivado, la partida arranca directo en `PLAYING`, ver §19.                                                                                          |
-| RF-03 | El mazo se arma tomando un **subconjunto aleatorio** de las fichas del catálogo y mezclando (§8, "Barajado"). Se evita repetir el mazo de la partida anterior. Cada lugar aporta **siempre exactamente dos cartas**, por construcción — ver §20.                                                                                                                                                                        |
-| RF-04 | Al terminar `PREVIEW` (o de inmediato si está desactivado), las cartas se ocultan con un volteo escalonado y arranca el cronómetro.                                                                                                                                                                                                                                                                                     |
-| RF-05 | Un toque voltea una carta. Al voltear la segunda, el resultado se resuelve de inmediato y el estado pasa a `EVALUATING_MATCH` o `EVALUATING_MISS` (§7); la entrada queda bloqueada en ambos.                                                                                                                                                                                                                            |
-| RF-06 | **Acierto:** las cartas ya quedan marcadas como emparejadas al entrar a `EVALUATING_MATCH`, y **aparece el nombre del lugar**. Bloqueo de `settings.matchLockoutMs` (600 ms).                                                                                                                                                                                                                                           |
-| RF-07 | **Fallo:** en `EVALUATING_MISS` se incrementa el contador de fallos de inmediato; las cartas vuelven a taparse **al resolver el bloqueo**, no antes. Bloqueo de `settings.missLockoutMs` (900 ms).                                                                                                                                                                                                                      |
-| RF-08 | **Vidas: `settings.maxLives`, configurable, por defecto 3, igual en todos los niveles.** `null` desactiva la derrota (modo práctica). Se muestran en el header como corazones/íconos **durante toda la partida**; cada fallo apaga uno. Con `maxLives: null` no se dibuja el bloque de vidas.                                                                                                                           |
-| RF-09 | Al fallar con **cero vidas restantes** (`maxLives` no nulo): estado `DEFEAT`, se detiene el cronómetro y se abre el modal de derrota. La resolución del par (volver a tapar, bloqueo de fallo) ocurre igual antes de mostrar el modal, para que el jugador vea el error que lo eliminó. `DEFEAT` se comprueba antes que `VICTORY`: nunca se declara victoria por el último par si ese mismo fallo agotó la última vida. |
-| RF-10 | Puntaje: `max(0, 10000 - segundos * 10 - fallos * 100)`. Se muestra **en vivo, solo mientras se juega y en el modal de victoria**. **No se calcula ni se muestra en la derrota** — un game over no terminó la partida, así que no hay un puntaje válido que mostrar (decisión de producto).                                                                                                                             |
-| RF-11 | Al emparejar el último par **con al menos una vida restante (o `maxLives: null`)**: se detiene el cronómetro, estado `VICTORY`, se abre el modal de victoria.                                                                                                                                                                                                                                                           |
-| RF-12 | El modal de victoria muestra primero las acciones principales — **siguiente nivel, volver al menú** — y la galería de lugares aprendidos con el puntaje. Guardar el puntaje con nombre es una fila secundaria y visualmente discreta debajo de las acciones, claramente opcional: no bloquea continuar ni se confunde con la acción principal de la pantalla.                                                           |
-| RF-13 | El modal de derrota muestra los lugares que sí se llegaron a emparejar (parcial, no la galería completa) y ofrece: **reintentar el mismo nivel**, volver al menú. **Sin puntaje, sin opción de guardar, sin siguiente nivel** — solo se guardan las victorias (decisión de producto, ver nota abajo).                                                                                                                   |
-| RF-14 | Los puntajes se guardan por nivel, ordenados de mayor puntaje y luego menor tiempo (desempate), **máximo 20 entradas** por nivel. **Solo entran partidas ganadas** — una derrota nunca aparece en la tabla, aunque su puntaje calculado fuera alto.                                                                                                                                                                     |
+| ID    | Regla                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RF-01 | La app abre en el Menú. Tres niveles + botón "Ver puntajes" + botón "Pantalla completa".                                                                                                                                                                                                                                                                                                                                                                 |
+| RF-02 | Si `settings.preview.enabled`, estado `PREVIEW` durante `settings.preview.durationMs` (por defecto 2000 ms — 1500 ms resultó insuficiente para registrar más de una o dos cartas): todas las cartas visibles, entrada bloqueada, cronómetro en `00:00`. Si está desactivado, la partida arranca directo en `PLAYING`, ver §19.                                                                                                                           |
+| RF-03 | El mazo se arma tomando un **subconjunto aleatorio** de las fichas del catálogo y mezclando (§8, "Barajado"). Se evita repetir el mazo de la partida anterior. Cada lugar aporta **siempre exactamente dos cartas**, por construcción — ver §20.                                                                                                                                                                                                         |
+| RF-04 | Al terminar `PREVIEW` (o de inmediato si está desactivado), las cartas se ocultan con un volteo escalonado y arranca el cronómetro.                                                                                                                                                                                                                                                                                                                      |
+| RF-05 | Un toque voltea una carta. Al voltear la segunda, el resultado se resuelve de inmediato y el estado pasa a `EVALUATING_MATCH` o `EVALUATING_MISS` (§7); la entrada queda bloqueada en ambos.                                                                                                                                                                                                                                                             |
+| RF-06 | **Acierto:** las cartas ya quedan marcadas como emparejadas al entrar a `EVALUATING_MATCH`, y **aparece el nombre del lugar**. Bloqueo de `settings.matchLockoutMs` (600 ms).                                                                                                                                                                                                                                                                            |
+| RF-07 | **Fallo:** en `EVALUATING_MISS` se incrementa el contador de fallos de inmediato; las cartas vuelven a taparse **al resolver el bloqueo**, no antes. Bloqueo de `settings.missLockoutMs` (900 ms).                                                                                                                                                                                                                                                       |
+| RF-08 | **Vidas: `LEVELS[levelId].maxLives`, por nivel — Fácil 3, Medio 4, Difícil 5.** `settings.maxLives` sigue existiendo como el campo que el reducer consulta (y admite `null` para desactivar la derrota, modo práctica), pero su valor real lo decide el nivel, no una constante única (ver nota abajo). Se muestran en el header como corazones **durante toda la partida**; cada fallo apaga uno. Con `maxLives: null` no se dibuja el bloque de vidas. |
+| RF-09 | Al fallar con **cero vidas restantes** (`maxLives` no nulo): estado `DEFEAT`, se detiene el cronómetro y se abre el modal de derrota. La resolución del par (volver a tapar, bloqueo de fallo) ocurre igual antes de mostrar el modal, para que el jugador vea el error que lo eliminó. `DEFEAT` se comprueba antes que `VICTORY`: nunca se declara victoria por el último par si ese mismo fallo agotó la última vida.                                  |
+| RF-10 | Puntaje: `max(0, 10000 - segundos * 10 - fallos * 100)`. Se muestra **en vivo, solo mientras se juega y en el modal de victoria**. **No se calcula ni se muestra en la derrota** — un game over no terminó la partida, así que no hay un puntaje válido que mostrar (decisión de producto).                                                                                                                                                              |
+| RF-11 | Al emparejar el último par **con al menos una vida restante (o `maxLives: null`)**: se detiene el cronómetro, estado `VICTORY`, se abre el modal de victoria.                                                                                                                                                                                                                                                                                            |
+| RF-12 | El modal de victoria muestra primero las acciones principales — **siguiente nivel, volver al menú** — y la galería de lugares aprendidos con el puntaje. Guardar el puntaje con nombre es una fila secundaria y visualmente discreta debajo de las acciones, claramente opcional: no bloquea continuar ni se confunde con la acción principal de la pantalla.                                                                                            |
+| RF-13 | El modal de derrota muestra los lugares que sí se llegaron a emparejar (parcial, no la galería completa) y ofrece: **reintentar el mismo nivel**, volver al menú. **Sin puntaje, sin opción de guardar, sin siguiente nivel** — solo se guardan las victorias (decisión de producto, ver nota abajo).                                                                                                                                                    |
+| RF-14 | Los puntajes se guardan por nivel, ordenados de mayor puntaje y luego menor tiempo (desempate), **máximo 20 entradas** por nivel. **Solo entran partidas ganadas** — una derrota nunca aparece en la tabla, aunque su puntaje calculado fuera alto.                                                                                                                                                                                                      |
 
-### Por qué las vidas son configurables y no fijas en código
+### Por qué las vidas suben con el nivel
 
-`maxLives: number | null` vive en `GameSettings` (§19), no como constante de dominio. Es una
-medida de **atención**, no de dificultad del contenido: cometer errores de memoria es igual
-de razonable en un tablero de 6 pares que en uno de 10, así que el valor por defecto (3) se
-mantiene igual en todos los niveles. Que sea configurable —incluida la opción `null`, sin
-derrota, para modo exhibición o práctica— es lo que permite ajustarlo sin tocar el reducer.
+`maxLives: number | null` vive en `GameSettings` (§19), no como constante de dominio — el
+reducer solo sabe leer `settings.maxLives`, nunca de dónde salió. El **valor** por nivel vive
+en `LEVELS[levelId].maxLives` (§7): Fácil 3, Medio 4, Difícil 5. Sube en vez de bajar porque
+un tablero más difícil tiene más pares que sostener en memoria y por tanto más ocasiones de
+fallar — dejar las vidas fijas (o reducirlas) apilaría dos perillas de dificultad una sobre
+otra: más cartas que recordar **y** menos margen de error. `useMemoryGame` arma el
+`GameSettings` real por partida mezclando el nivel encima de `DEFAULT_GAME_SETTINGS` justo
+antes de repartir el mazo — `DEFAULT_GAME_SETTINGS.maxLives` queda como relleno de tipo, sin
+efecto en una partida real. Que siga siendo `number | null` en el reducer —incluida la opción
+`null`, sin derrota, para modo exhibición o práctica— es lo que permite tocar estos valores
+sin tocar el reducer.
 
 ### Por qué la derrota no interrumpe la animación del fallo
 
@@ -1182,8 +1193,18 @@ export const createId = (): string =>
 ```
 
 **Tabla Top 20 sin scroll:** veinte filas no entran junto al encabezado y las pestañas.
-Se renderiza en **dos columnas de diez** (1–10 | 11–20). Además se ve mejor en pantalla
-ancha.
+Con **más de 10** entradas se renderiza en dos columnas de diez (1–10 | 11–20). Con **10 o
+menos** —el caso normal antes de que un nivel acumule muchas partidas— una sola columna,
+más angosta y centrada, en vez de dejar una segunda columna vacía junto a la lista: dos
+columnas ahí se leería como una tabla a medio llenar, no como un ranking.
+
+**Podio con medalla, resto con estrella:** en `LeaderboardTable.tsx`, la fila 1 lleva 🥇, la
+2 🥈, la 3 🥉 —con un fondo tintado en el color de su medalla— y de la 4 en adelante una ⭐
+pequeña y apagada, solo como marcador de posición. Medallas emoji y no un ícono propio: el
+oro/plata/bronce ya viene en el glifo, así que no hace falta inventar una paleta nueva para
+lograrlo. El `<ol start={...}>` sigue existiendo para que un lector de pantalla anuncie el
+orden real, pero su marcador visual se oculta (`list-style: none`) porque ahora es
+redundante con la medalla o la estrella.
 
 ---
 

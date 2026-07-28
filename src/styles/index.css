@@ -952,23 +952,63 @@ body {
   background: var(--color-surface);
   box-shadow: 0 20px 40px -24px rgb(11 53 80 / 35%);
 }
+/* 10 or fewer entries: a single narrower column, centered, instead of stretching one
+   list across the full two-column width with nothing beside it. */
+.leaderboard-columns[data-single="true"] {
+  width: min(420px, 100%);
+  justify-content: center;
+}
 
 .leaderboard-column {
   flex: 1;
   min-width: 0;
   margin: 0;
-  padding-left: 1.5em; /* room for the <ol> ordinal marker */
+  /* The <ol> stays an ordered list for assistive tech (rank order matters), but its
+     visual ordinal is redundant now that every row leads with a rank badge. */
+  list-style: none;
   text-align: left;
 }
 
 .leaderboard-row {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.3rem 0;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.3rem;
+  border-radius: 0.6rem;
   font-family: var(--font-body);
   font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
   border-bottom: 1px solid var(--color-border);
+}
+
+/* A subtle tinted background per medal, so the top 3 read as a podium at a glance
+   instead of only differing by their badge glyph. */
+.leaderboard-row[data-rank-tier="gold"] {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-gold) 22%, transparent),
+    transparent
+  );
+}
+.leaderboard-row[data-rank-tier="silver"] {
+  background: linear-gradient(90deg, color-mix(in srgb, #b7c0c9 30%, transparent), transparent);
+}
+.leaderboard-row[data-rank-tier="bronze"] {
+  background: linear-gradient(90deg, color-mix(in srgb, #c98a4b 24%, transparent), transparent);
+}
+
+.rank-badge {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 1.6em;
+  font-size: clamp(0.85rem, 1.7vmin, 1.15rem);
+  line-height: 1;
+}
+/* Rest of the pack: a small, quiet star rather than the full-size medal emoji — a rank
+   marker, not a prize. */
+.leaderboard-row[data-rank-tier="rest"] .rank-badge {
+  font-size: clamp(0.65rem, 1.3vmin, 0.85rem);
+  opacity: 0.6;
 }
 
 .leaderboard-name {
@@ -977,6 +1017,12 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.leaderboard-row[data-rank-tier="gold"] .leaderboard-name,
+.leaderboard-row[data-rank-tier="silver"] .leaderboard-name,
+.leaderboard-row[data-rank-tier="bronze"] .leaderboard-name {
+  font-weight: 700;
+  color: var(--color-ink);
 }
 
 .leaderboard-score {

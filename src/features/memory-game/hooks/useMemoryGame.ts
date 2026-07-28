@@ -17,7 +17,10 @@ export function useMemoryGame(levelId: LevelId, settings: GameSettings = DEFAULT
     const level = LEVELS[levelId];
     const cards = buildDeck(CATALOG, level.pairs, { previousPlaceIds: excluding });
     setPreviousPlaceIds([...new Set(cards.map((c) => c.place.id))]);
-    dispatch({ type: "START", cards, levelId, settings, now: performance.now() });
+    // maxLives comes from the level, not the settings prop: harder levels grant more
+    // lives (§ LEVELS comment), so it can't be a single fixed value across all three.
+    const levelSettings = { ...settings, maxLives: level.maxLives };
+    dispatch({ type: "START", cards, levelId, settings: levelSettings, now: performance.now() });
   };
 
   // Deals a fresh deck only when the level or settings prop actually changes. `deal`
