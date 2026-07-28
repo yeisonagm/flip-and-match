@@ -6,6 +6,7 @@ export const copy = {
     subtitle: "Memoria de lugares turísticos del Perú",
     play: (levelLabel: string): string => `Jugar ${levelLabel}`,
     scores: "Ver puntajes",
+    fullscreen: "Pantalla completa",
   },
   game: {
     exit: "Salir",
