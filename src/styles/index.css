@@ -416,6 +416,16 @@ body {
   background: var(--color-border);
   transform: scale(0.95);
 }
+/* Phones only, not tablets or the whiteboard target: 64px next to a compact phone header
+   reads oversized, and a phone screen is close enough to the eye/hand that 48px (Material's
+   own minimum touch target) is still comfortably tappable. */
+@media (max-width: 480px) {
+  .btn-icon {
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 1.05rem;
+  }
+}
 
 .lives-indicator {
   display: flex;
@@ -1036,6 +1046,8 @@ body {
   right: clamp(0.5rem, 2vmin, 1rem);
   z-index: 1;
   background: rgb(255 255 255 / 92%);
+  /* Same phone-only shrink as .btn-icon above: floating on top of a photo, a full 64px
+     circle covers a disproportionate chunk of a phone-width image. */
   box-shadow: 0 6px 16px -8px rgb(11 53 80 / 55%);
 }
 
