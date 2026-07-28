@@ -798,12 +798,15 @@ body {
   color: white;
   background: linear-gradient(to top, rgb(11 53 80 / 88%), transparent);
   text-align: center;
-  /* Absolutely positioned, never in flow: if the name entered the flow on match, the
-     card would change height and the whole grid would jump. */
+  /* Absolutely positioned, never in flow: if the name entered the flow, the card would
+     change height and the whole grid would jump. */
   transform: translateY(100%);
   transition: transform 320ms var(--flip-ease);
 }
-.card[data-matched="true"] .card-caption {
+/* Any card showing its front gets its name — matched or just flipped face-up mid-guess —
+   not only once a pair is confirmed. isFlipped and isMatched both render the front face
+   (see CardItem's `revealed`), so the caption follows the same rule as the face itself. */
+.card[data-flipped="true"] .card-caption {
   transform: translateY(0);
 }
 .card[data-matched="true"] .card-face--front {
