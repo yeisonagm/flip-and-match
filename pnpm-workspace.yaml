@@ -9,4 +9,3 @@
 # `onlyBuiltDependencies` field.
 allowBuilds:
   esbuild: true
-1
