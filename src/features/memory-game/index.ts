@@ -1,7 +1,9 @@
 export { Board } from "./components/Board";
 export { CardItem } from "./components/CardItem";
 export { DefeatModal } from "./components/DefeatModal";
+export { GameFooter } from "./components/GameFooter";
 export { GameHeader } from "./components/GameHeader";
+export { LevelSteps } from "./components/LevelSteps";
 export { LivesIndicator } from "./components/LivesIndicator";
 export { PlaceGallery } from "./components/PlaceGallery";
 export { VictoryModal } from "./components/VictoryModal";

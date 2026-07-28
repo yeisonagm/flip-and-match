@@ -5,6 +5,7 @@ import {
   type Card,
   computeScore,
   DefeatModal,
+  GameFooter,
   GameHeader,
   LEVEL_IDS,
   LEVELS,
@@ -13,6 +14,7 @@ import {
   useMemoryGame,
   VictoryModal,
 } from "@/features/memory-game";
+import { fullscreen } from "@/platform/fullscreen";
 import { createId } from "@/shared/lib/createId";
 import type { Screen } from "../types";
 
@@ -62,16 +64,19 @@ export function GameScreen({ levelId, onNavigate }: GameScreenProps) {
   return (
     <div className="app-shell">
       <GameHeader
-        levelLabel={level.label}
+        levelId={levelId}
         maxLives={state.settings.maxLives}
         livesRemaining={livesRemaining(state)}
         elapsedMs={state.elapsedMs}
         score={score}
+        attempts={state.matches + state.misses}
         onExit={exitToMenu}
+        onToggleFullscreen={() => fullscreen.toggle()}
       />
       <div className="board-area">
         <Board cards={state.cards} disabled={disabled} onSelect={selectCard} />
       </div>
+      <GameFooter matches={state.matches} totalPairs={level.pairs} onRetry={restart} />
       {state.status === "VICTORY" && (
         <VictoryModal
           places={matchedPlacesOf(state.cards)}

@@ -31,7 +31,7 @@ elige un nivel y completa una partida sin que nadie tenga que explicarle nada.
 ### Dentro del MVP (v1.0)
 
 - Menú principal con tres niveles y acceso a puntajes.
-- Fase de vista previa **configurable** (activable/desactivable, duración por defecto 1.5 s)
+- Fase de vista previa **configurable** (activable/desactivable, duración por defecto 2 s)
   con las cartas destapadas y la entrada bloqueada — ver §19.
 - Mecánica de volteo y emparejamiento con detección de pares, garantizados en cantidades
   pares por construcción — ver §20.
@@ -309,7 +309,10 @@ flip-and-match/
 │   │   │   ├── components/
 │   │   │   │   ├── Board.tsx         # calcula cols/rows para ambas orientaciones, ver §10
 │   │   │   │   ├── CardItem.tsx
-│   │   │   │   ├── GameHeader.tsx    # header horizontal compacto, no sidebar — ver §10
+│   │   │   │   ├── GameHeader.tsx    # marca + estadísticas + dificultad — ver §10
+│   │   │   │   ├── GameFooter.tsx    # reintentar + progreso de pares — ver §10
+│   │   │   │   ├── LevelSteps.tsx    # indicador de dificultad (posición, no bloqueo)
+│   │   │   │   ├── StatPill.tsx      # pastilla icono + valor de la fila superior
 │   │   │   │   ├── LivesIndicator.tsx
 │   │   │   │   ├── StatTile.tsx      # tile de estadística, reusado por ambos modales
 │   │   │   │   ├── PlaceGallery.tsx  # shared by both modals below
@@ -556,18 +559,18 @@ correcto de TypeScript para configuración estática.
 | ID    | Regla                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | RF-01 | La app abre en el Menú. Tres niveles + botón "Ver puntajes" + botón "Pantalla completa".                                                                                                                                                                                                                                                                                                                                |
-| RF-02 | Si `settings.preview.enabled`, estado `PREVIEW` durante `settings.preview.durationMs` (por defecto 1500 ms): todas las cartas visibles, entrada bloqueada, cronómetro en `00:00`. Si está desactivado, la partida arranca directo en `PLAYING`, ver §19.                                                                                                                                                                |
+| RF-02 | Si `settings.preview.enabled`, estado `PREVIEW` durante `settings.preview.durationMs` (por defecto 2000 ms — 1500 ms resultó insuficiente para registrar más de una o dos cartas): todas las cartas visibles, entrada bloqueada, cronómetro en `00:00`. Si está desactivado, la partida arranca directo en `PLAYING`, ver §19.                                                                                          |
 | RF-03 | El mazo se arma tomando un **subconjunto aleatorio** de las fichas del catálogo y mezclando (§8, "Barajado"). Se evita repetir el mazo de la partida anterior. Cada lugar aporta **siempre exactamente dos cartas**, por construcción — ver §20.                                                                                                                                                                        |
 | RF-04 | Al terminar `PREVIEW` (o de inmediato si está desactivado), las cartas se ocultan con un volteo escalonado y arranca el cronómetro.                                                                                                                                                                                                                                                                                     |
 | RF-05 | Un toque voltea una carta. Al voltear la segunda, el resultado se resuelve de inmediato y el estado pasa a `EVALUATING_MATCH` o `EVALUATING_MISS` (§7); la entrada queda bloqueada en ambos.                                                                                                                                                                                                                            |
 | RF-06 | **Acierto:** las cartas ya quedan marcadas como emparejadas al entrar a `EVALUATING_MATCH`, y **aparece el nombre del lugar**. Bloqueo de `settings.matchLockoutMs` (600 ms).                                                                                                                                                                                                                                           |
 | RF-07 | **Fallo:** en `EVALUATING_MISS` se incrementa el contador de fallos de inmediato; las cartas vuelven a taparse **al resolver el bloqueo**, no antes. Bloqueo de `settings.missLockoutMs` (900 ms).                                                                                                                                                                                                                      |
-| RF-08 | **Vidas: `settings.maxLives`, configurable, por defecto 3, igual en todos los niveles.** `null` desactiva la derrota (modo práctica). Se muestran en el header como corazones/íconos **durante toda la partida**; cada fallo apaga uno. Con `maxLives: null` no se dibuja el bloque de vidas.                                                                                                                          |
+| RF-08 | **Vidas: `settings.maxLives`, configurable, por defecto 3, igual en todos los niveles.** `null` desactiva la derrota (modo práctica). Se muestran en el header como corazones/íconos **durante toda la partida**; cada fallo apaga uno. Con `maxLives: null` no se dibuja el bloque de vidas.                                                                                                                           |
 | RF-09 | Al fallar con **cero vidas restantes** (`maxLives` no nulo): estado `DEFEAT`, se detiene el cronómetro y se abre el modal de derrota. La resolución del par (volver a tapar, bloqueo de fallo) ocurre igual antes de mostrar el modal, para que el jugador vea el error que lo eliminó. `DEFEAT` se comprueba antes que `VICTORY`: nunca se declara victoria por el último par si ese mismo fallo agotó la última vida. |
-| RF-10 | Puntaje: `max(0, 10000 - segundos * 10 - fallos * 100)`. Se muestra **en vivo, solo mientras se juega y en el modal de victoria**. **No se calcula ni se muestra en la derrota** — un game over no terminó la partida, así que no hay un puntaje válido que mostrar (decisión de producto).                                                                                                                            |
+| RF-10 | Puntaje: `max(0, 10000 - segundos * 10 - fallos * 100)`. Se muestra **en vivo, solo mientras se juega y en el modal de victoria**. **No se calcula ni se muestra en la derrota** — un game over no terminó la partida, así que no hay un puntaje válido que mostrar (decisión de producto).                                                                                                                             |
 | RF-11 | Al emparejar el último par **con al menos una vida restante (o `maxLives: null`)**: se detiene el cronómetro, estado `VICTORY`, se abre el modal de victoria.                                                                                                                                                                                                                                                           |
-| RF-12 | El modal de victoria muestra primero las acciones principales — **siguiente nivel, volver al menú** — y la galería de lugares aprendidos con el puntaje. Guardar el puntaje con nombre es una fila secundaria y visualmente discreta debajo de las acciones, claramente opcional: no bloquea continuar ni se confunde con la acción principal de la pantalla.                                                          |
-| RF-13 | El modal de derrota muestra los lugares que sí se llegaron a emparejar (parcial, no la galería completa) y ofrece: **reintentar el mismo nivel**, volver al menú. **Sin puntaje, sin opción de guardar, sin siguiente nivel** — solo se guardan las victorias (decisión de producto, ver nota abajo).                                                                                                                    |
+| RF-12 | El modal de victoria muestra primero las acciones principales — **siguiente nivel, volver al menú** — y la galería de lugares aprendidos con el puntaje. Guardar el puntaje con nombre es una fila secundaria y visualmente discreta debajo de las acciones, claramente opcional: no bloquea continuar ni se confunde con la acción principal de la pantalla.                                                           |
+| RF-13 | El modal de derrota muestra los lugares que sí se llegaron a emparejar (parcial, no la galería completa) y ofrece: **reintentar el mismo nivel**, volver al menú. **Sin puntaje, sin opción de guardar, sin siguiente nivel** — solo se guardan las victorias (decisión de producto, ver nota abajo).                                                                                                                   |
 | RF-14 | Los puntajes se guardan por nivel, ordenados de mayor puntaje y luego menor tiempo (desempate), **máximo 20 entradas** por nivel. **Solo entran partidas ganadas** — una derrota nunca aparece en la tabla, aunque su puntaje calculado fuera alto.                                                                                                                                                                     |
 
 ### Por qué las vidas son configurables y no fijas en código
@@ -754,8 +757,11 @@ ResizeObserver**.
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│  GAME HEADER  (flex: 0 0 auto — alto por contenido)            │
-│  Nivel   ♥ ♥ ♡   ⏱ 01:24   ★ 8760                    [ ✕ ]     │
+│  GAME HEADER  (flex: 0 0 auto — tres bandas, ver nota)         │
+│  [ ✕ ]        (logo) Flip & Match / Encuentra los lugares [⛶] │
+│  ⭐ 8 760   👆 12   ⏱ 01:24   ♥ ♥ ♡                            │
+│   ✓─────────── ② ─ ─ ─ ─ ─ ─ ③                                │
+│  Fácil        Medio          Difícil                           │
 ├───────────────────────────────────────────────────────────────┤
 │                                                                 │
 │                  BOARD AREA (flex: 1, min-height: 0)           │
@@ -765,15 +771,47 @@ ResizeObserver**.
 │              ├───┼───┼───┼───┼───┤                             │
 │              └───┴───┴───┴───┴───┘                             │
 │                                                                 │
+├───────────────────────────────────────────────────────────────┤
+│  GAME FOOTER  (flex: 0 0 auto)                                 │
+│  [ ↻ ]           4 / 12 pares                                  │
+│         ▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░                  │
 └───────────────────────────────────────────────────────────────┘
 ```
 
-Las vidas van **primero, a la izquierda** en el header, no al final junto al puntaje: son
-la información que más urgente necesita leer alguien a distancia — perder de vista cuántas
-quedan es peor que perder de vista el puntaje. El corazón perdido cambia de lleno a un
-contorno vacío en `--color-danger`, sin animación de por medio salvo un pulso breve en el
-instante del fallo que lo apaga, para que el ojo lo capte incluso sin estar mirando el
-header en ese momento.
+**El header son tres bandas apiladas, no una fila.** El `<header>` en sí es transparente:
+la barra de marca y cada pastilla de estadística llevan su propia superficie blanca, y el
+indicador de dificultad se apoya directo sobre el fondo de la página. Los botones de salir
+(✕) y pantalla completa (⛶) son objetivos táctiles fijos de 64×64 (§11 regla 4) que nunca
+se encogen; cuando compartían fila con las estadísticas, en un viewport angosto vertical el
+botón de salir terminaba envuelto (`flex-wrap`) a una segunda línea **por sí solo** — el
+header saltaba de ~48 px a ~116 px de alto y le robaba esa diferencia al tablero. Con una
+banda propia por función, ningún control compite por espacio con nada que pueda empujarlo.
+
+La fila de estadísticas es un **grid de columnas fijas** (`repeat(4, minmax(0, 1fr))`), no
+un flex que envuelve: una cuarta pastilla envuelta duplicaría la altura de la banda en
+silencio y esa altura sale del tablero. Las pastillas se encogen; la fila nunca crece.
+Cada pastilla muestra solo un icono y su valor —el rótulo viaja como texto
+`.visually-hidden`, no como `aria-label`, porque un reloj dentro de un `aria-label` se
+re-anuncia en cada tick—. Las cuatro son datos reales del dominio: puntaje, intentos
+(`matches + misses`), tiempo y vidas. No hay estadísticas inventadas.
+
+El **indicador de dificultad** (`LevelSteps.tsx`) marca posición, no progresión: todos los
+niveles se pueden elegir desde el menú, así que los posteriores al actual se dibujan
+apagados y **nunca con candado**, que afirmaría una regla de bloqueo que el juego no tiene.
+
+**El footer** (`GameFooter.tsx`) muestra el progreso de la partida — "N / pairs pares",
+con una barra de relleno — y un botón para reiniciar el nivel actual sin pasar por el
+menú. Mismo componente `.btn-icon` de 64×64 que el botón de salir, mismo motivo: es un
+control táctil, no decoración.
+
+**Una pantalla ancha y baja no puede pagar tres bandas.** En 1024×600, apiladas dejarían la
+celda por debajo del mínimo táctil de 64 px. Por eso `@media (min-width: 820px) and
+(max-height: 820px)` pone las tres bandas **una al lado de otra** — que es justamente para
+lo que sirve el espacio horizontal sobrante ahí — y ahí las pastillas pasan a columnas
+dimensionadas por contenido, porque compartiendo fila con la barra de marca cuatro columnas
+iguales no alcanzan para "10 000" sin cortarlo. Medido: header 76 px y celda de 96 px.
+En el otro extremo, header y footer se limitan a `min(100%, 1180px)` centrados, para que una
+pizarra de 1920 px no estire cuatro pastillas a lo largo de dos metros de vidrio.
 
 **Por qué el criterio de aceptación no es "no aparece scroll".** Con `overflow: hidden` en
 `.app-shell`, una barra de scroll es **imposible por definición** — no es una salvaguarda,
@@ -1052,7 +1090,7 @@ para deshacerlo (§11, regla 3).
 
 **Un solo archivo, `scoreRepository.ts`, no un `ports/` + `infra/` separados.** La razón
 original para separarlos —permitir migrar a `tauri-plugin-store` sin tocar componentes— sigue
-siendo válida como *forma*: la interfaz `ScoreRepository` existe y es asíncrona de punta a
+siendo válida como _forma_: la interfaz `ScoreRepository` existe y es asíncrona de punta a
 punta (esa API sí lo es; un puerto síncrono garantizaría el refactor que se quiere evitar).
 Pero hoy hay **un solo backend real** — `localStorage`, que funciona igual en el navegador y
 dentro del WebView de Tauri — así que separar el contrato de su única implementación en dos
@@ -1489,7 +1527,7 @@ export interface GameSettings {
 ```ts
 // features/memory-game/config/gameSettings.ts
 export const DEFAULT_GAME_SETTINGS = {
-  preview: { enabled: true, durationMs: 1500 },
+  preview: { enabled: true, durationMs: 2000 },
   maxLives: 3,
   matchLockoutMs: 600, // matches the caption entrance animation
   missLockoutMs: 900, // viewers stand far from a wall display and need longer

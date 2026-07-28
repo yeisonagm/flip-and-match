@@ -66,6 +66,19 @@ body {
   -webkit-user-select: none;
 }
 
+/* Reaches a screen reader, occupies no layout — for the stat pills, which show icons
+   only. Not display:none, which removes it from the accessibility tree too. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .btn {
   min-width: 64px;
   min-height: 64px;
@@ -212,51 +225,143 @@ body {
   font-family: var(--font-body);
 }
 
-/* A compact top bar, not a full-height sidebar: it needs to stay small so the board
-   below keeps almost the entire viewport height. flex: 0 0 auto sizes it to content and
-   the cell-size formula below already treats whatever's left as the only budget it has. */
+/* Three thin bands, not a full-height sidebar: the board below has to keep almost the
+   entire viewport height, so every band is flex: 0 0 auto (content-sized) and the
+   cell-size formula further down treats whatever is left as its only budget.
+   The header itself is transparent — the brand bar and the stat pills carry their own
+   white surfaces, and the stepper sits straight on the page background. */
 .game-header {
   flex: 0 0 auto;
   min-width: 0;
   display: flex;
+  flex-direction: column;
+  gap: clamp(0.4rem, 1.2vmin, 0.85rem);
+}
+
+/* Capped and centred so a 1920-wide wall display doesn't stretch four stat pills across
+   two metres of glass; the board centres itself in the same axis, so they stay aligned. */
+.game-header,
+.game-footer {
+  width: min(100%, 1180px);
+  margin-inline: auto;
+}
+
+.game-brand {
+  display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: clamp(0.5rem, 2vw, 1.25rem);
-  padding: clamp(0.5rem, 1.5vmin, 0.85rem) clamp(0.75rem, 2vw, 1.5rem);
-  border-radius: 999px;
+  gap: clamp(0.4rem, 1.5vw, 0.9rem);
+  min-width: 0;
+  padding: clamp(0.3rem, 1vmin, 0.55rem) clamp(0.4rem, 1.4vw, 0.8rem);
+  border-radius: clamp(1rem, 3vmin, 1.5rem);
   background: var(--color-surface);
   box-shadow: 0 10px 26px -16px rgb(11 53 80 / 35%);
 }
 
-.game-header-level {
+.game-brand-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.35rem, 1.2vw, 0.7rem);
+}
+
+.game-brand-logo {
+  flex: 0 0 auto;
+  width: clamp(30px, 4.5vmin, 48px);
+  height: clamp(30px, 4.5vmin, 48px);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.game-brand-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-brand-title,
+.game-brand-subtitle {
+  /* One long word can otherwise widen the flex row past the two round controls. */
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.game-brand-title {
   font-family: var(--font-display);
-  font-size: clamp(1rem, 2vmin, 1.5rem);
+  font-weight: 800;
+  font-size: clamp(0.95rem, 2.3vmin, 1.6rem);
+  line-height: 1.15;
   color: var(--color-ink);
 }
 
-.game-header-stat {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4em;
-  padding: 0.35em 0.85em;
-  border-radius: 999px;
-  background: var(--color-page-start);
-  font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
-}
-
-.game-header-stat-label {
+.game-brand-subtitle {
+  font-size: clamp(0.65rem, 1.4vmin, 0.95rem);
+  line-height: 1.2;
   color: var(--color-muted);
 }
 
-.game-header-stat-value {
-  font-variant-numeric: tabular-nums; /* fixed digit width — a jittering clock is very
-    noticeable on a large display */
-  color: var(--color-brand-dark);
-  font-weight: 700;
+/* Fixed column count rather than wrapping: a wrapped fourth pill would silently double
+   this band's height and steal it from the board. The pills shrink instead. */
+.game-header-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.3rem, 1.1vw, 0.7rem);
+}
+.game-header-stats[data-lives="false"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-/* Still 64x64 (§11 rule 4): a touch target this is not the place to shrink, even
-   though the header itself stays visually compact. */
+.stat-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.2rem, 0.9vw, 0.5rem);
+  min-width: 0;
+  padding: clamp(0.25rem, 0.9vmin, 0.5rem) clamp(0.3rem, 1vw, 0.7rem);
+  border-radius: clamp(0.75rem, 2.2vmin, 1.2rem);
+  background: var(--color-surface);
+  box-shadow: 0 8px 20px -16px rgb(11 53 80 / 55%);
+}
+
+.stat-pill-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: clamp(24px, 3.8vmin, 40px);
+  height: clamp(24px, 3.8vmin, 40px);
+  border-radius: clamp(0.45rem, 1.3vmin, 0.8rem);
+  font-size: clamp(0.75rem, 1.9vmin, 1.2rem);
+  line-height: 1;
+}
+.stat-pill[data-tone="gold"] .stat-pill-icon {
+  background: #fdf0cd;
+}
+.stat-pill[data-tone="mint"] .stat-pill-icon {
+  background: #d6f1ec;
+}
+.stat-pill[data-tone="peach"] .stat-pill-icon {
+  background: #fde2d3;
+}
+
+.stat-pill-value {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(0.85rem, 2vmin, 1.4rem);
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums; /* fixed digit width — a jittering clock is very
+    noticeable on a large display */
+}
+
+/* Still 64x64 (§11 rule 4): a touch target this is not the place to shrink. Both live in
+   a row of their own (.game-brand / .game-footer), so they never compete for space with
+   anything that could push them into wrapping. */
 .btn-icon {
   min-width: 64px;
   min-height: 64px;
@@ -267,30 +372,121 @@ body {
   background: var(--color-page-start);
   color: var(--color-ink);
   box-shadow: none;
+  flex: 0 0 auto;
 }
 .btn-icon:active {
   background: var(--color-border);
   transform: scale(0.95);
 }
-.game-header .btn-icon {
-  margin-left: auto;
-}
 
 .lives-indicator {
   display: flex;
-  gap: 0.3em;
+  gap: clamp(0.05rem, 0.5vw, 0.3rem);
 }
 
 .life-icon {
-  width: clamp(16px, 2.4vmin, 26px);
-  height: clamp(16px, 2.4vmin, 26px);
-  border-radius: 50%;
-  background: var(--color-danger);
-  transition: background 200ms ease;
+  font-size: clamp(0.95rem, 2.4vmin, 1.7rem);
+  line-height: 1;
+  color: var(--color-danger);
+  transition: color 220ms ease;
 }
 .life-icon[data-lost="true"] {
+  color: var(--color-border);
+}
+
+/* --- Difficulty stepper --- */
+
+.level-steps {
+  --step-dot: clamp(28px, 5vmin, 44px);
+  display: flex;
+  align-items: flex-start;
+  list-style: none;
+  margin: 0;
+  padding: 0 clamp(0.5rem, 3vw, 2.5rem);
+}
+
+.level-step {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+.level-step[data-level="easy"] {
+  --step-color: var(--color-easy);
+}
+.level-step[data-level="medium"] {
+  --step-color: var(--color-medium);
+}
+.level-step[data-level="hard"] {
+  --step-color: var(--color-hard);
+}
+
+/* Steps are equal-width flex items, so -50%..50% of one spans exactly centre-to-centre
+   with its predecessor — no fixed offsets to re-tune when a level is added. */
+.level-step + .level-step::before {
+  content: "";
+  position: absolute;
+  left: -50%;
+  right: 50%;
+  top: calc(var(--step-dot) / 2);
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+.level-step[data-state="past"]::before,
+.level-step[data-state="current"]::before {
+  background: var(--color-brand);
+}
+/* Dashed towards what you haven't played yet, solid behind you — same read as the
+   reference UI, with no claim that the next level is locked. */
+.level-step[data-state="next"]::before {
+  height: 0;
   background: none;
+  border-top: 3px dashed var(--color-border);
+}
+
+.level-step-dot {
+  position: relative; /* above the connector line */
+  display: grid;
+  place-items: center;
+  width: var(--step-dot);
+  height: var(--step-dot);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-muted);
   box-shadow: inset 0 0 0 2px var(--color-border);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: calc(var(--step-dot) * 0.44);
+  line-height: 1;
+}
+.level-step[data-state="past"] .level-step-dot {
+  background: var(--color-brand);
+  color: white;
+  box-shadow: none;
+}
+.level-step[data-state="current"] .level-step-dot {
+  background: var(--step-color);
+  color: white;
+  box-shadow:
+    0 0 0 3px var(--color-surface),
+    0 0 0 6px color-mix(in srgb, var(--step-color) 40%, transparent);
+}
+
+.level-step-label {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: clamp(0.7rem, 1.5vmin, 0.95rem);
+  color: var(--color-muted);
+}
+.level-step[data-state="current"] .level-step-label {
+  color: var(--color-ink);
+  font-weight: 700;
 }
 
 .board-area {
@@ -332,6 +528,82 @@ body {
   .board {
     --cols: var(--cols-portrait);
     --rows: var(--rows-portrait);
+  }
+}
+
+/* --- Game footer: retry + pairs progress --- */
+
+.game-footer {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.4rem, 1.5vw, 0.9rem);
+  padding: clamp(0.3rem, 1vmin, 0.55rem) clamp(0.4rem, 1.4vw, 0.8rem);
+  border-radius: clamp(1rem, 3vmin, 1.5rem);
+  background: var(--color-surface);
+  box-shadow: 0 10px 26px -16px rgb(11 53 80 / 35%);
+}
+
+.game-progress {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.15rem, 0.6vmin, 0.35rem);
+  padding: clamp(0.3rem, 1vmin, 0.55rem) clamp(0.5rem, 1.6vw, 1rem);
+  border-radius: 999px;
+  background: var(--color-page-start);
+}
+
+.game-progress-label {
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(0.7rem, 1.5vmin, 1rem);
+  line-height: 1.2;
+  color: var(--color-muted);
+}
+
+.game-progress-track {
+  height: clamp(8px, 1.3vmin, 14px);
+  border-radius: 999px;
+  background: var(--color-surface);
+  overflow: clip;
+}
+
+.game-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-medium), var(--color-hard));
+  transition: width 320ms var(--flip-ease);
+}
+
+/* A short, wide window (a laptop or a 1024x600 panel) cannot afford three stacked bands:
+   they would push the cell size under the 64px touch minimum. There the same three bands
+   sit side by side, which is what the spare horizontal room is for. */
+@media (min-width: 820px) and (max-height: 820px) {
+  .game-header {
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(0.5rem, 1.5vw, 1.25rem);
+  }
+  .game-brand {
+    flex: 1 1 auto;
+  }
+  /* Content-sized columns here, not four equal ones: sharing a row with the brand card
+     leaves each pill too little to fit "10,000" without ellipsing it. */
+  .game-header-stats {
+    flex: 0 1 auto;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+  }
+  .level-steps {
+    flex: 0 1 clamp(200px, 24vw, 340px);
+    padding: 0;
+  }
+  .game-brand-subtitle {
+    display: none;
   }
 }
 
