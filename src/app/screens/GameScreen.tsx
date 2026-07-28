@@ -1,5 +1,5 @@
 import type { TouristPlace } from "@/features/catalog";
-import { localStorageScoreRepository, type ScoreEntry } from "@/features/leaderboard";
+import { rankWith, type ScoreEntry, scoreRepository } from "@/features/leaderboard";
 import {
   Board,
   type Card,
@@ -51,8 +51,8 @@ export function GameScreen({ levelId, onNavigate }: GameScreenProps) {
       misses: state.misses,
       date: new Date().toISOString().slice(0, 10),
     };
-    localStorageScoreRepository.load(levelId).then((existing) => {
-      localStorageScoreRepository.save(levelId, [...existing, entry]);
+    scoreRepository.load(levelId).then((existing) => {
+      scoreRepository.save(levelId, rankWith(existing, entry));
     });
   };
 
@@ -87,12 +87,7 @@ export function GameScreen({ levelId, onNavigate }: GameScreenProps) {
         />
       )}
       {state.status === "DEFEAT" && (
-        <DefeatModal
-          places={matchedPlacesOf(state.cards)}
-          score={score}
-          onRetry={restart}
-          onExit={exitToMenu}
-        />
+        <DefeatModal places={matchedPlacesOf(state.cards)} onRetry={restart} onExit={exitToMenu} />
       )}
     </div>
   );

@@ -19,8 +19,9 @@ export const copy = {
     title: "¡Nivel completado!",
     subtitle: "Lugares que aprendiste",
     scoreLabel: (score: number): string => `Puntaje: ${score}`,
-    playerNamePlaceholder: "Tu nombre (opcional)",
-    save: "Guardar puntaje",
+    saveQuestion: "¿Guardar tu puntaje? (opcional)",
+    playerNamePlaceholder: "Tu nombre",
+    save: "Guardar",
     saved: "¡Puntaje guardado!",
     nextLevel: "Siguiente nivel",
     backToMenu: "Volver al menú",
@@ -28,13 +29,12 @@ export const copy = {
   defeat: {
     title: "Sin vidas",
     subtitle: "Lugares que alcanzaste a emparejar",
-    scoreLabel: (score: number): string => `Puntaje: ${score}`,
     retry: "Reintentar",
     backToMenu: "Volver al menú",
   },
   scores: {
     title: "Puntajes",
-    comingSoon: "Próximamente",
+    empty: "Aún no hay puntajes guardados para este nivel.",
     back: "Volver al menú",
   },
 } as const;

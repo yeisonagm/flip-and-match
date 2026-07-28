@@ -1,6 +1,15 @@
 import type { LevelId } from "@/features/memory-game";
-import type { ScoreEntry } from "../domain/types";
-import type { ScoreRepository } from "../ports/ScoreRepository";
+import type { ScoreEntry } from "./domain/types";
+
+// Storage only — ranking and the Top-20 cap live in domain/ranking.ts, tested once and
+// shared regardless of backend. One concrete implementation for now (localStorage works
+// the same in the browser and inside the Tauri WebView); if a future desktop build needs
+// tauri-plugin-store instead, branch here the same way platform/fullscreen picks an
+// adapter by environment — no reason to carry a ports/infra split for a single backend.
+export interface ScoreRepository {
+  readonly load: (levelId: LevelId) => Promise<readonly ScoreEntry[]>;
+  readonly save: (levelId: LevelId, entries: readonly ScoreEntry[]) => Promise<void>;
+}
 
 const key = (levelId: LevelId): string => `flip-and-match:scores:${levelId}`;
 
@@ -20,7 +29,7 @@ const isScoreEntry = (value: unknown): value is ScoreEntry =>
   "date" in value &&
   typeof value.date === "string";
 
-export const localStorageScoreRepository: ScoreRepository = {
+export const scoreRepository: ScoreRepository = {
   async load(levelId) {
     try {
       const raw = globalThis.localStorage.getItem(key(levelId));

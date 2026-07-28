@@ -319,9 +319,7 @@ flip-and-match/
 │   │       ├── domain/
 │   │       │   ├── types.ts
 │   │       │   └── ranking.ts       # rankWith() — Top 20 y desempate, puro y testeado
-│   │       ├── ports/ScoreRepository.ts   # async, ver §13
-│   │       ├── infra/localStorageScoreRepository.ts
-│   │       ├── hooks/useLeaderboard.ts
+│   │       ├── scoreRepository.ts   # contrato + única implementación (localStorage), ver §13
 │   │       ├── components/LeaderboardTable.tsx
 │   │       └── index.ts
 │   ├── platform/
@@ -564,10 +562,10 @@ correcto de TypeScript para configuración estática.
 | RF-07 | **Fallo:** en `EVALUATING_MISS` se incrementa el contador de fallos de inmediato; las cartas vuelven a taparse **al resolver el bloqueo**, no antes. Bloqueo de `settings.missLockoutMs` (900 ms).                                                                                                                                                                                                                      |
 | RF-08 | **Vidas: `settings.maxLives`, configurable, por defecto 3, igual en todos los niveles.** `null` desactiva la derrota (modo práctica). Se muestran en el header como corazones/íconos **durante toda la partida**; cada fallo apaga uno. Con `maxLives: null` no se dibuja el bloque de vidas.                                                                                                                          |
 | RF-09 | Al fallar con **cero vidas restantes** (`maxLives` no nulo): estado `DEFEAT`, se detiene el cronómetro y se abre el modal de derrota. La resolución del par (volver a tapar, bloqueo de fallo) ocurre igual antes de mostrar el modal, para que el jugador vea el error que lo eliminó. `DEFEAT` se comprueba antes que `VICTORY`: nunca se declara victoria por el último par si ese mismo fallo agotó la última vida. |
-| RF-10 | Puntaje: `max(0, 10000 - segundos * 10 - fallos * 100)`. Se muestra en vivo y se calcula igual en victoria y en derrota.                                                                                                                                                                                                                                                                                                |
+| RF-10 | Puntaje: `max(0, 10000 - segundos * 10 - fallos * 100)`. Se muestra **en vivo, solo mientras se juega y en el modal de victoria**. **No se calcula ni se muestra en la derrota** — un game over no terminó la partida, así que no hay un puntaje válido que mostrar (decisión de producto).                                                                                                                            |
 | RF-11 | Al emparejar el último par **con al menos una vida restante (o `maxLives: null`)**: se detiene el cronómetro, estado `VICTORY`, se abre el modal de victoria.                                                                                                                                                                                                                                                           |
-| RF-12 | El modal de victoria muestra la galería de lugares aprendidos, el puntaje, y ofrece: guardar puntaje con nombre (opcional), siguiente nivel, volver al menú.                                                                                                                                                                                                                                                            |
-| RF-13 | El modal de derrota muestra los lugares que sí se llegaron a emparejar (parcial, no la galería completa), las vidas agotadas, aciertos, fallos, tiempo y puntaje, y ofrece: **reintentar el mismo nivel**, volver al menú. **Sin opción de guardar puntaje ni de siguiente nivel** — solo se guardan las victorias (decisión de producto, ver nota abajo).                                                              |
+| RF-12 | El modal de victoria muestra primero las acciones principales — **siguiente nivel, volver al menú** — y la galería de lugares aprendidos con el puntaje. Guardar el puntaje con nombre es una fila secundaria y visualmente discreta debajo de las acciones, claramente opcional: no bloquea continuar ni se confunde con la acción principal de la pantalla.                                                          |
+| RF-13 | El modal de derrota muestra los lugares que sí se llegaron a emparejar (parcial, no la galería completa) y ofrece: **reintentar el mismo nivel**, volver al menú. **Sin puntaje, sin opción de guardar, sin siguiente nivel** — solo se guardan las victorias (decisión de producto, ver nota abajo).                                                                                                                    |
 | RF-14 | Los puntajes se guardan por nivel, ordenados de mayor puntaje y luego menor tiempo (desempate), **máximo 20 entradas** por nivel. **Solo entran partidas ganadas** — una derrota nunca aparece en la tabla, aunque su puntaje calculado fuera alto.                                                                                                                                                                     |
 
 ### Por qué las vidas son configurables y no fijas en código
@@ -1003,15 +1001,19 @@ para deshacerlo (§11, regla 3).
 
 ## 13. Persistencia
 
-La interfaz existe para que migrar a `tauri-plugin-store` (puntajes en un archivo junto al
-`.exe`, para distribución portable) no toque un solo componente — y esa API es asíncrona de
-punta a punta, así que **el puerto tiene que serlo desde el día uno**: un puerto síncrono
-garantizaría exactamente el refactor que existe para evitar. El puerto además solo hace
-almacenamiento; el ranking (orden, desempate, tope de 20) es una regla de dominio, testeada
-una sola vez y compartida por cualquier adaptador futuro.
+**Un solo archivo, `scoreRepository.ts`, no un `ports/` + `infra/` separados.** La razón
+original para separarlos —permitir migrar a `tauri-plugin-store` sin tocar componentes— sigue
+siendo válida como *forma*: la interfaz `ScoreRepository` existe y es asíncrona de punta a
+punta (esa API sí lo es; un puerto síncrono garantizaría el refactor que se quiere evitar).
+Pero hoy hay **un solo backend real** — `localStorage`, que funciona igual en el navegador y
+dentro del WebView de Tauri — así que separar el contrato de su única implementación en dos
+carpetas es ceremonia sin beneficio todavía. El día que haga falta un segundo backend, se
+bifurca en el mismo archivo por entorno, igual que `platform/fullscreen/index.ts` (§12). El
+ranking (orden, desempate, tope de 20) sigue aparte en `domain/ranking.ts`: es una regla de
+dominio, testeada una sola vez y compartida por cualquier backend futuro.
 
 ```ts
-// features/leaderboard/ports/ScoreRepository.ts — storage only
+// features/leaderboard/scoreRepository.ts — contrato + única implementación, un archivo
 export interface ScoreRepository {
   readonly load: (levelId: LevelId) => Promise<readonly ScoreEntry[]>;
   readonly save: (
@@ -1035,7 +1037,7 @@ export const rankWith = (
 ```
 
 ```ts
-// features/leaderboard/infra/localStorageScoreRepository.ts
+// features/leaderboard/scoreRepository.ts (continuación) — implementación sobre localStorage
 const key = (levelId: LevelId) => `flip-and-match:scores:${levelId}`;
 
 // A corrupted key, a quota error, or a WebView with site data blocked must degrade to an
@@ -1050,7 +1052,7 @@ const isScoreEntry = (v: unknown): v is ScoreEntry =>
   "playerName" in v &&
   typeof v.playerName === "string";
 
-export const localStorageScoreRepository: ScoreRepository = {
+export const scoreRepository: ScoreRepository = {
   async load(levelId) {
     try {
       const raw = globalThis.localStorage.getItem(key(levelId));

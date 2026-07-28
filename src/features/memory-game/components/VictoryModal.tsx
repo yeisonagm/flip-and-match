@@ -12,6 +12,9 @@ interface VictoryModalProps {
   readonly onExit: () => void;
 }
 
+// Continuing is the point of this screen; saving a name is a courtesy on the way out.
+// "Siguiente nivel" / "Volver al menú" are the primary actions, first and full-size —
+// the save form sits below as a small, clearly optional row, never blocking either one.
 export function VictoryModal({
   places,
   score,
@@ -28,6 +31,16 @@ export function VictoryModal({
       <p className="modal-score">{copy.victory.scoreLabel(score)}</p>
       <h3>{copy.victory.subtitle}</h3>
       <PlaceGallery places={places} />
+      <div className="modal-actions">
+        {onNextLevel !== null && (
+          <button type="button" className="btn" onClick={onNextLevel}>
+            {copy.victory.nextLevel}
+          </button>
+        )}
+        <button type="button" className="btn" onClick={onExit}>
+          {copy.victory.backToMenu}
+        </button>
+      </div>
       {saved ? (
         <p className="modal-saved">{copy.victory.saved}</p>
       ) : (
@@ -39,6 +52,7 @@ export function VictoryModal({
             setSaved(true);
           }}
         >
+          <span className="modal-save-question">{copy.victory.saveQuestion}</span>
           <input
             type="text"
             className="modal-name-input"
@@ -47,21 +61,11 @@ export function VictoryModal({
             placeholder={copy.victory.playerNamePlaceholder}
             maxLength={40}
           />
-          <button type="submit" className="btn">
+          <button type="submit" className="btn btn-subtle">
             {copy.victory.save}
           </button>
         </form>
       )}
-      <div className="modal-actions">
-        {onNextLevel !== null && (
-          <button type="button" className="btn" onClick={onNextLevel}>
-            {copy.victory.nextLevel}
-          </button>
-        )}
-        <button type="button" className="btn" onClick={onExit}>
-          {copy.victory.backToMenu}
-        </button>
-      </div>
     </Modal>
   );
 }

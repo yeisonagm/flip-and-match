@@ -338,35 +338,111 @@ body {
   color: var(--color-bone);
 }
 
-.modal-save-form {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  width: 100%;
-}
-
-.modal-name-input {
-  flex: 1 1 200px;
-  min-height: 64px;
-  padding: 0 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  background: var(--color-ink);
-  color: var(--color-bone);
-  font-family: var(--font-body);
-  font-size: 1rem;
-}
-
-.modal-saved {
-  color: var(--color-lagoon);
-}
-
 .modal-actions {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+/* Deliberately small and secondary: saving a name is optional, "Siguiente nivel" /
+   "Volver al menú" above are the real actions on this screen. */
+.modal-save-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(242 237 227 / 15%);
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.modal-save-question {
+  opacity: 0.75;
+}
+
+.modal-name-input {
+  flex: 1 1 160px;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--color-ink);
+  color: var(--color-bone);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.btn-subtle {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgb(242 237 227 / 25%);
+}
+.btn-subtle:active {
+  background: var(--color-lagoon);
+}
+
+.modal-saved {
+  color: var(--color-lagoon);
+  font-size: 0.9rem;
+}
+
+/* --- Scores screen --- */
+
+.scores-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.scores-tab {
+  opacity: 0.6;
+}
+.scores-tab[data-active="true"] {
+  opacity: 1;
+  background: var(--color-lagoon);
+}
+
+.leaderboard-columns {
+  display: flex;
+  gap: clamp(1rem, 4vw, 3rem);
+  width: min(700px, 100%);
+}
+
+.leaderboard-column {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding-left: 1.5em; /* room for the <ol> ordinal marker */
+  text-align: left;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
+}
+
+.leaderboard-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard-score {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gold);
 }
 
 @media (prefers-reduced-motion: reduce) {
