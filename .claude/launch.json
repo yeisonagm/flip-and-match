@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["dev"],
       "port": 1420
+    },
+    {
+      "name": "flip-and-match-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["preview", "--port", "4173"],
+      "port": 4173
     }
   ]
 }

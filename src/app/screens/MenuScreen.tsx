@@ -1,6 +1,7 @@
 import logo from "@/assets/logo.png";
 import { LEVEL_IDS, LEVELS } from "@/features/memory-game";
 import { fullscreen } from "@/platform/fullscreen";
+import { useInstallPrompt } from "@/platform/pwa";
 import { copy } from "@/shared/copy/es";
 import type { Screen } from "../types";
 
@@ -9,8 +10,18 @@ interface MenuScreenProps {
 }
 
 export function MenuScreen({ onNavigate }: MenuScreenProps) {
+  const { canInstall, promptInstall } = useInstallPrompt();
+
   return (
     <main className="menu-screen">
+      {canInstall && (
+        <button type="button" className="install-banner" onClick={promptInstall}>
+          <span className="install-banner-icon" aria-hidden="true">
+            ⬇️
+          </span>
+          {copy.menu.install}
+        </button>
+      )}
       <img className="menu-badge" src={logo} alt="" />
       <h1 className="menu-title">{copy.menu.title}</h1>
       <p className="menu-subtitle">{copy.menu.subtitle}</p>

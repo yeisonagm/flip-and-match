@@ -8,6 +8,7 @@ export const copy = {
     pairsLabel: (pairs: number): string => `${pairs} pares`,
     scores: "Ver puntajes",
     fullscreen: "Pantalla completa",
+    install: "Instalar app",
   },
   game: {
     exit: "Salir",

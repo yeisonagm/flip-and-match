@@ -9,3 +9,4 @@
 # `onlyBuiltDependencies` field.
 allowBuilds:
   esbuild: true
+  sharp: true

@@ -69,6 +69,7 @@ Match the request to a location before writing anything.
 | Victory or defeat modal content           | `features/memory-game/components/VictoryModal.tsx` / `DefeatModal.tsx`         |
 | Saving or reading scores                  | `features/leaderboard/infra/localStorageScoreRepository.ts`                    |
 | Fullscreen, window, anything OS-level     | `platform/fullscreen/`                                                         |
+| Service worker, offline cache, install prompt | `platform/pwa/` (web build only — no-ops inside Tauri)                     |
 | A reusable button, modal, tabs            | `shared/ui/`                                                                   |
 | Any Spanish text                          | `shared/copy/es.ts`                                                            |
 | A new screen                              | `app/screens/` + extend the `Screen` union in `app/types.ts`                   |

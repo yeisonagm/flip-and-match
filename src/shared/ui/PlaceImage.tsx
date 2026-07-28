@@ -2,22 +2,26 @@ import { useState } from "react";
 import type { TouristPlace } from "@/features/catalog";
 import { PlacePlaceholder } from "./PlacePlaceholder";
 
-// object-fit: cover, no letterboxing layer: the photo fills the box edge to edge on both
-// axes, cropping whatever doesn't fit while keeping its own aspect ratio — the same
-// treatment everywhere PlaceImage is used (card, gallery tile, detail modal), so a photo
-// never looks different depending on where it's shown.
-// Shares .place-image's absolute-fill geometry with the placeholder fallback, so an
-// onError swap causes zero layout shift.
+// A shimmering gradient shows while the photo is still downloading, then the photo fades
+// in — a first-visit concern only: platform/pwa precaches every place photo, so every
+// load after the first resolves this <img> from disk almost instantly and the shimmer
+// never has time to show.
 export function PlaceImage({ place }: { readonly place: TouristPlace }) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   if (failed) return <PlacePlaceholder placeId={place.id} />;
   return (
-    <img
-      className="place-image"
-      src={place.imageUrl}
-      alt="" // decorative — the accessible name comes from the card button's aria-label
-      draggable={false}
-      onError={() => setFailed(true)}
-    />
+    <span className="place-image" data-loaded={loaded}>
+      <img
+        className="place-image-photo"
+        src={place.imageUrl}
+        alt="" // decorative — the accessible name comes from the card button's aria-label
+        draggable={false}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+      />
+    </span>
   );
 }

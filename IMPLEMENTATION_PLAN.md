@@ -327,11 +327,15 @@ flip-and-match/
 │   │       ├── components/LeaderboardTable.tsx
 │   │       └── index.ts
 │   ├── platform/
-│   │   └── fullscreen/
-│   │       ├── FullscreenPort.ts
-│   │       ├── webFullscreen.ts
-│   │       ├── tauriFullscreen.ts
-│   │       └── index.ts             # detecta entorno y exporta el adaptador
+│   │   ├── fullscreen/
+│   │   │   ├── FullscreenPort.ts
+│   │   │   ├── webFullscreen.ts
+│   │   │   ├── tauriFullscreen.ts
+│   │   │   └── index.ts             # detecta entorno y exporta el adaptador
+│   │   └── pwa/                     # instalable + sin conexión en el build web, ver §22
+│   │       ├── registerPwa.ts
+│   │       ├── useInstallPrompt.ts
+│   │       └── index.ts
 │   ├── shared/
 │   │   ├── ui/                      # Button, Modal, Tabs, PlaceImage, PlacePlaceholder,
 │   │   │                            # PlaceDetailModal (ver §19, §21)
@@ -1617,16 +1621,24 @@ tiempo y puntaje.
 ### Cómo se encuadra una foto en la carta
 
 Las fotos reales llegan con cualquier tamaño y cualquier relación de aspecto (verticales,
-apaisadas, cuadradas), y la celda es siempre **cuadrada**. Las dos opciones de una sola capa
-son malas: `object-fit: cover` llena la carta pero **recorta** —una foto vertical en una
-celda cuadrada pierde el monumento fuera de cuadro— y `object-fit: contain` muestra la foto
-entera pero deja franjas vacías.
+apaisadas, cuadradas), y la celda es siempre **cuadrada**. `PlaceImage` usa
+`object-fit: cover` de forma directa —sin capa de fondo difuminado—: la foto llena la celda
+por completo en ambos ejes, recortando lo que sobre pero conservando su propia relación de
+aspecto, igual en la carta, la miniatura de la galería y el modal de detalle. Una versión
+anterior usaba `contain` más una copia difuminada y sobre-escalada para rellenar el espacio
+sobrante; se descartó porque el desenfoque se leía como un error visual, no como una
+decisión de diseño.
 
-`PlaceImage` usa **dos capas del mismo archivo**: la copia nítida va con `contain` (nunca se
-recorta nada, no hay zoom) y una copia difuminada y sobre-escalada del mismo archivo rellena
-lo que la primera no cubre. Ni espacio muerto ni recorte, y el mismo archivo, así que no hay
-una segunda descarga. El sobre-escalado (`transform: scale(1.2)`) deja el borde blando del
-desenfoque fuera de la carta, que `.card-face` recorta.
+### Estado de carga
+
+`PlaceImage` distingue tres estados con `useState`: cargando, cargada y fallida. Mientras
+`<img onLoad>` no ha disparado, el contenedor (`data-loaded="false"`) muestra un degradado
+animado (`background-position` en bucle, `prefers-reduced-motion` lo apaga) en vez de un
+hueco en blanco; al cargar, la foto entra con una transición de opacidad de 280ms. Esto
+solo se nota en la **primera visita real** —el service worker (§22) precachea las 21 fotos,
+así que cualquier carga posterior las resuelve casi al instante y el degradado no llega a
+animarse ni una vez. `loading="lazy" decoding="async"` en el `<img>` es una segunda capa de
+buena práctica, aunque en el tablero (siempre visible por completo) su efecto es mínimo.
 
 ### Fallback cuando falta la imagen
 
@@ -1771,15 +1783,67 @@ backdrop como botón absoluto (`inset: 0`) por debajo del panel en el DOM, un cl
 panel simplemente nunca llega al backdrop —son hermanos, no hay nada que interceptar— y un
 botón nativo ya es operable por teclado y lector de pantalla sin código extra.
 
-La imagen reutiliza `PlaceImage` (§19): la copia nítida con `contain` más el fondo
-difuminado, la misma técnica del tablero, así que una foto vertical o apaisada nunca se
-recorta también aquí.
+La imagen reutiliza `PlaceImage` (§19): mismo `object-fit: cover` y mismo degradado de
+carga que en el tablero, así que una foto vertical o apaisada se ve igual de completa aquí
+que en la carta.
 
 **Siempre una sola columna** —foto arriba, texto abajo— en cualquier ancho, no solo en
 pantallas angostas: una fila lado a lado apretaba tanto la foto como los dos párrafos a la
-mitad del panel cada uno. El panel es más ancho (`min(900px, 100%)`) y más alto
-(`min(880px, 92vh)`) que el resto de modales de la app para darle a la reseña espacio real
-de lectura, con scroll propio si el contenido no cabe entero.
+mitad del panel cada uno. El panel es más ancho (`min(1024px, 100%)`) que el resto de
+modales de la app para darle a la reseña espacio real de lectura. El alto **no es fijo**:
+se ajusta al contenido hasta un `max-height` relativo al viewport (`95vh`, `96vh` por
+debajo de 1024px de ancho) — así una reseña corta no arrastra espacio vacío y una larga
+solo activa scroll cuando de verdad no cabe, nunca antes. `overflow-x: clip` en el panel es
+puramente defensivo (nada dentro desborda hoy), pero una foto en `cover` pegada a una
+esquina redondeada no es el sitio para confiar en que la aritmética del ancho siempre da
+exacta.
+
+---
+
+## 22. PWA — instalable y jugable sin conexión
+
+Solo aplica al **build web** (Vercel). El `.exe` de Tauri ya es una app de escritorio
+instalada y sin dependencia de red; `platform/pwa/` detecta el entorno con el mismo patrón
+que `platform/fullscreen` (`"__TAURI_INTERNALS__" in window`) y no hace nada ahí.
+
+```
+src/platform/pwa/
+├── registerPwa.ts       # registra el service worker — no-op en Tauri
+├── useInstallPrompt.ts  # captura beforeinstallprompt, expone canInstall + promptInstall
+└── index.ts
+```
+
+**Generación:** `vite-plugin-pwa` en modo `generateSW` (Workbox), configurado en
+`vite.config.ts`. `globPatterns` incluye `webp,jpg,jpeg,png,svg,woff2` además de
+`js,css,html,ico` — sin eso, el precaché cubriría el bundle de la app pero no las 21 fotos,
+y "jugable sin conexión" sería falso a medias. `maximumFileSizeToCacheInBytes` se sube a
+5 MB (el default de Workbox es 2 MB); ningún archivo individual se acerca a ese límite hoy
+(el más grande son ~654 KB), pero el default habría fallado en silencio ante una foto futura
+más pesada. Precaché medido: 38 entradas, ~8.2 MB.
+
+**Registro manual, no automático:** `injectRegister: null` en la config del plugin — el
+registro ocurre en `registerPwa()` (llamado una vez desde `main.tsx`) en vez del script que
+el plugin inyectaría solo, para poder aplicar el chequeo de entorno de arriba en un único
+lugar en vez de depender de que el HTML generado nunca cambie. `registerType: "autoUpdate"`
+actualiza el service worker sin pedir confirmación: una versión vieja sirviendo en silencio
+un build de la semana pasada es peor que una recarga que el jugador ni nota entre partidas.
+
+**Íconos:** generados una sola vez con `@vite-pwa/assets-generator` (preset
+`minimal2023Preset`) a partir de `app-icon.png` en la raíz — `pwa-assets.config.ts` deja el
+comando reproducible (`pnpm dlx @vite-pwa/assets-generator`) para cuando el logo cambie. La
+salida (`pwa-64x64.png`, `pwa-192x192.png`, `pwa-512x512.png`,
+`maskable-icon-512x512.png`, `apple-touch-icon-180x180.png`, `favicon.ico`) vive en
+`public/`, referenciada tanto desde el manifest como desde `index.html`.
+
+**Botón de instalar:** `useInstallPrompt` escucha `beforeinstallprompt`, llama
+`event.preventDefault()` para suprimir el mini-infobar propio del navegador y guarda el
+evento diferido — `canInstall` se vuelve `true` recién ahí, nunca antes, porque el navegador
+decide cuándo el sitio califica (no hay forma de forzarlo). El banner
+(`MenuScreen.tsx`) es `position: fixed; top: 0`, no el primer hijo de `.menu-screen`: esa
+pantalla centra su columna verticalmente, así que un hijo normal habría flotado hacia el
+medio junto con el resto en vez de leerse como "arriba". Detecta instalación previa por
+`display-mode: standalone` (Chromium/Edge) y `navigator.standalone` (Safari/iOS, que nunca
+dispara `beforeinstallprompt`), para no ofrecer instalar lo ya instalado.
 
 ---
 

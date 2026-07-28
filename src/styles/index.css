@@ -123,6 +123,40 @@ body {
   padding: clamp(1rem, 4vmin, 3rem);
 }
 
+/* Fixed to the viewport top, not just first in the centered stack: .menu-screen centers
+   its whole column vertically, so a plain first-child would drift toward the middle of
+   the screen along with everything else instead of reading as "up top". */
+.install-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 0;
+  background: linear-gradient(120deg, var(--color-brand), var(--color-brand-dark));
+  color: white;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.8vmin, 1rem);
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.install-banner:active {
+  filter: brightness(0.95);
+}
+
+.install-banner-icon {
+  font-size: 1.1em;
+}
+
 .menu-badge {
   width: clamp(128px, 24vmin, 192px);
   height: clamp(128px, 24vmin, 192px);
@@ -684,13 +718,15 @@ body {
   box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
-/* Shared by <PlaceImage> and the generated <PlacePlaceholder> so the error fallback is
-   geometrically identical — zero layout shift by construction, not by luck.
+/* Shared by <PlaceImage>'s wrapper and the generated <PlacePlaceholder> so the error
+   fallback is geometrically identical — zero layout shift by construction, not by luck.
    object-fit: cover fills the box on both axes and crops whatever doesn't fit — used
    everywhere a place photo appears (card, gallery tile, detail modal) so a photo is
    framed the same way regardless of where it's shown. No letterboxing layer: a `contain`
    + blurred-backdrop version of this was tried and reverted — the blur read as a mistake
-   to look at, not a design choice. */
+   to look at, not a design choice. overflow: clip only matters for the loading-state
+   gradient below; on the placeholder <svg>, which has no overflowing content, it's a
+   no-op. */
 .place-image {
   position: absolute;
   inset: 0;
@@ -698,6 +734,48 @@ body {
   height: 100%;
   display: block;
   object-fit: cover;
+  overflow: clip;
+}
+
+/* Only ever set on <PlaceImage>'s wrapper <span> — the placeholder <svg> above never
+   carries this attribute, so this rule can't touch it. A shimmering gradient while the
+   photo is still downloading; once cached by the service worker (platform/pwa) every
+   later load resolves before this has time to animate even once. */
+.place-image[data-loaded="false"] {
+  background: linear-gradient(
+    100deg,
+    var(--color-page-start) 25%,
+    var(--color-surface) 50%,
+    var(--color-page-start) 75%
+  );
+  background-size: 200% 100%;
+  animation: place-image-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .place-image[data-loaded="false"] {
+    animation: none;
+  }
+}
+
+.place-image-photo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 280ms ease;
+}
+.place-image[data-loaded="true"] .place-image-photo {
+  opacity: 1;
+}
+
+@keyframes place-image-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .card-caption {
