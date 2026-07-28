@@ -1,2 +1,4 @@
-allowBuilds:
-  esbuild: set this to true or false
+# Single-package project — no `packages:` globs needed. `pnpm approve-builds --all`
+# reports nothing pending today; if a future dependency adds a postinstall script,
+# approve it explicitly here rather than leaving a placeholder value.
+onlyBuiltDependencies: []

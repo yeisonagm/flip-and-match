@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette — Andean natural dyes on high-altitude night sky */
+  --color-ink: #10162c; /* base background */
+  --color-stone: #1c2444; /* elevated surfaces: sidebar, modal */
+  --color-cochineal: #c7383f; /* misses, lost lives, destructive */
+  --color-gold: #e8b33d; /* matches, score, primary accent */
+  --color-lagoon: #2e9b8f; /* secondary accent, confirmations */
+  --color-bone: #f2ede3; /* primary text */
+
+  /* Type */
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "Inter Tight", system-ui, sans-serif;
+
+  /* Motion */
+  --flip-duration: 420ms;
+  --flip-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: clip;
+  overscroll-behavior: none;
+}
+
+html {
+  /* R5 — every browser touch gesture is a whiteboard bug: manipulation kills
+     double-tap zoom; .board additionally needs touch-action: none for pinch. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+  font-family: var(--font-body);
+}
+
+.app-shell {
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: clip; /* backstop — see IMPLEMENTATION_PLAN.md §10 for the sizing contract itself */
+  font-family: var(--font-display);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* !important must win over any component's own transition — that's the whole
+     point of a global reduced-motion override. */
+  * {
+    /* biome-ignore lint/complexity/noImportantStyles: intentional global override */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: intentional global override */
+    transition-duration: 0.01ms !important;
+  }
+}

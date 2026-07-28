@@ -4,7 +4,12 @@
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
+    /* Composite projects must emit; route the .d.ts + buildinfo into an ignored
+       folder instead of littering the repo root next to vite.config.ts. */
+    "outDir": "./.tsbuild/node",
+    "tsBuildInfoFile": "./.tsbuild/node.tsbuildinfo"
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "vitest.config.ts"]
 }
