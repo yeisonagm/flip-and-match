@@ -10,7 +10,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/domain/**/*.test.ts"],
+    // Domain logic proper, plus the pure config/catalog invariants (level shape, no
+    // duplicate places) that live just outside domain/ — never a .test.tsx, since this
+    // project has no component tests.
+    include: ["src/**/*.test.ts"],
     globals: false,
     // Stage 0 ships no domain code yet — an empty suite must exit 0 so `pnpm test`
     // proves Vitest is wired up rather than failing before any feature work starts.

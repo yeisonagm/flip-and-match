@@ -530,7 +530,7 @@ export interface LevelConfig {
 
 export const LEVELS = {
   easy: { label: "Fácil", cols: 4, rows: 3, pairs: 6 },
-  medium: { label: "Medio", cols: 4, rows: 4, pairs: 8 },
+  medium: { label: "Medio", cols: 6, rows: 3, pairs: 9 },
   hard: { label: "Difícil", cols: 5, rows: 4, pairs: 10 },
 } as const satisfies Record<LevelId, LevelConfig>;
 ```
@@ -538,7 +538,11 @@ export const LEVELS = {
 **Siempre más columnas que filas.** El destino es una pantalla 16:9 apaisada; la altura
 es el recurso escaso. Una grilla 3×4 vertical desperdicia la mitad del ancho y encoge
 las cartas. Esta y la invariante `cols * rows === pairs * 2` se verifican en un test de
-dominio (§20), no solo por convención.
+dominio (§20), no solo por convención — de hecho fue precisamente ese test el que atrapó
+el primer incumplimiento real: una versión anterior de este documento tenía el nivel medio
+en `4×4`, una grilla cuadrada que viola la regla por definición (`cols` no es mayor que
+`rows`, es igual). `6×3` la resuelve y de paso ubica el nivel medio, en número de pares,
+entre el fácil (6) y el difícil (10).
 
 `as const satisfies` da autocompletado literal _y_ validación de forma. Es el patrón
 correcto de TypeScript para configuración estática.
@@ -1205,7 +1209,9 @@ todo lo que puede romperse en silencio. No hay tests de componentes en el MVP.
 `vitest.config.ts` va **separado** de `vite.config.ts`: reutilizar este último arrastraría el
 pase de babel de React Compiler y el plugin de Tailwind a cada corrida de test, sin ningún
 beneficio para código que no toca React ni CSS. `environment: 'node'` (sin DOM), `include:
-['src/**/domain/**/*.test.ts']`, `defineConfig` importado de `vitest/config`.
+['src/**/*.test.ts']` — cubre `domain/` y también las invariantes de `config/levels.ts` y
+`catalog/places.data.ts`, que son igualmente TypeScript puro aunque vivan un nivel fuera de
+`domain/` — `defineConfig` importado de `vitest/config`.
 
 Casos mínimos en `gameReducer`:
 
