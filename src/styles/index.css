@@ -307,8 +307,8 @@ body {
 
 .game-brand-logo {
   flex: 0 0 auto;
-  width: clamp(30px, 4.5vmin, 48px);
-  height: clamp(30px, 4.5vmin, 48px);
+  width: clamp(32px, 4.5vmin, 48px);
+  height: clamp(32px, 4.5vmin, 48px);
   border-radius: 50%;
   object-fit: cover;
 }
@@ -596,44 +596,41 @@ body {
 
 /* --- Game footer: retry + pairs progress --- */
 
+/* No background of its own anymore: a flat frosted bar here doubled up on .game-brand's
+   glass surface right above it, and the whole point of the footer is to be a thin, quiet
+   strip — a pill wide enough to hold a button and a progress bar reads as another card,
+   not as a status line. */
 .game-footer {
   flex: 0 0 auto;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: clamp(0.4rem, 1.5vw, 0.9rem);
-  padding: clamp(0.3rem, 1vmin, 0.55rem) clamp(0.4rem, 1.4vw, 0.8rem);
-  border-radius: clamp(1rem, 3vmin, 1.5rem);
-  background: var(--color-glass-surface);
-  backdrop-filter: blur(14px) saturate(1.4);
-  -webkit-backdrop-filter: blur(14px) saturate(1.4);
-  box-shadow: 0 10px 26px -16px rgb(11 53 80 / 35%);
+  gap: clamp(0.5rem, 2vw, 1rem);
+}
+
+/* Smaller than the header's close/fullscreen buttons on purpose — a retry action taken
+   once in a while doesn't carry the same "must always be instantly reachable" weight
+   that justified the full 64px touch target there. */
+.game-footer-retry {
+  min-width: 36px;
+  min-height: 36px;
+  font-size: 1.05rem;
 }
 
 .game-progress {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: clamp(0.15rem, 0.6vmin, 0.35rem);
-  padding: clamp(0.3rem, 1vmin, 0.55rem) clamp(0.5rem, 1.6vw, 1rem);
-  border-radius: 999px;
-  background: var(--color-page-start);
-}
-
-.game-progress-label {
-  text-align: center;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  font-size: clamp(0.7rem, 1.5vmin, 1rem);
-  line-height: 1.2;
-  color: var(--color-muted);
+  align-items: center;
+  gap: clamp(0.5rem, 1.6vw, 0.85rem);
 }
 
 .game-progress-track {
-  height: clamp(8px, 1.3vmin, 14px);
+  flex: 1;
+  min-width: 0;
+  height: clamp(5px, 0.8vmin, 8px);
   border-radius: 999px;
-  background: var(--color-surface);
+  background: var(--color-glass-surface);
   overflow: clip;
 }
 
@@ -642,6 +639,18 @@ body {
   border-radius: 999px;
   background: linear-gradient(90deg, var(--color-medium), var(--color-hard));
   transition: width 320ms var(--flip-ease);
+}
+
+.game-progress-label {
+  flex: 0 0 auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(0.7rem, 1.5vmin, 0.9rem);
+  line-height: 1.2;
+  /* Sits directly on the teal app background now, not inside a pale pill — --color-muted
+     would fail contrast there, same reasoning as --color-ink-on-brand elsewhere. */
+  color: var(--color-ink-on-brand);
+  opacity: 0.85;
 }
 
 /* A short, wide window (a laptop or a 1024x600 panel) cannot afford three stacked bands:

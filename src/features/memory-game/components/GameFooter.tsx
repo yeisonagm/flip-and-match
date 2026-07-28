@@ -10,7 +10,12 @@ export function GameFooter({ matches, totalPairs, onRetry }: GameFooterProps) {
   const percent = totalPairs === 0 ? 0 : Math.round((matches / totalPairs) * 100);
   return (
     <footer className="game-footer">
-      <button type="button" className="btn btn-icon" aria-label={copy.game.retry} onClick={onRetry}>
+      <button
+        type="button"
+        className="btn btn-icon game-footer-retry"
+        aria-label={copy.game.retry}
+        onClick={onRetry}
+      >
         ↻
       </button>
       <div
@@ -21,10 +26,10 @@ export function GameFooter({ matches, totalPairs, onRetry }: GameFooterProps) {
         aria-valuenow={matches}
         aria-label={copy.game.pairsProgress(matches, totalPairs)}
       >
-        <span className="game-progress-label">{copy.game.pairsProgress(matches, totalPairs)}</span>
         <div className="game-progress-track">
           <div className="game-progress-fill" style={{ width: `${percent}%` }} />
         </div>
+        <span className="game-progress-label">{copy.game.pairsProgress(matches, totalPairs)}</span>
       </div>
     </footer>
   );
