@@ -31,14 +31,8 @@ export function Board({ cards, disabled, onSelect }: BoardProps) {
   };
   return (
     <div className="board" style={style}>
-      {cards.map((card, index) => (
-        <CardItem
-          key={card.instanceId}
-          card={card}
-          index={index}
-          disabled={disabled}
-          onSelect={onSelect}
-        />
+      {cards.map((card) => (
+        <CardItem key={card.instanceId} card={card} disabled={disabled} onSelect={onSelect} />
       ))}
     </div>
   );

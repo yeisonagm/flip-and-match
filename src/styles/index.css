@@ -3,12 +3,16 @@
 @theme {
   /* Palette — bright, playful, modern: a light backdrop with candy-saturated accents,
      one color family per difficulty level, echoed throughout buttons and stats. */
-  --color-page-start: #eaf7fb;
-  --color-page-end: #fdf1f7;
+  --color-app-bg: #009d9e; /* flat brand teal behind every screen — see body below */
+  --color-page-start: #eaf7fb; /* pale tint reused for pill/chip backgrounds, not the page itself */
   --color-surface: #ffffff;
   --color-ink: #0b3550; /* headings, primary text on light surfaces */
   --color-muted: #5b7688; /* secondary text */
   --color-border: #e3edf2;
+  /* Text sitting directly on --color-app-bg, not inside a white/pale surface: --color-ink
+     only reaches 3.85:1 against this teal (fails WCAG AA for normal-size text, 4.5:1),
+     and --color-muted is far worse at 1.44:1. This shade clears 5.5:1. */
+  --color-ink-on-brand: #04202b;
 
   --color-brand: #0e8a9c; /* teal — primary CTAs, links, progress */
   --color-brand-dark: #0b6b7a;
@@ -47,15 +51,7 @@ html {
 
 body {
   margin: 0;
-  /* Soft corner "blobs" via layered radial gradients — no extra markup, so a screen with
-     nothing but a board doesn't pay for decoration it can't show anyway. */
-  background:
-    radial-gradient(circle at 6% 10%, rgb(224 65 122 / 20%), transparent 24%),
-    radial-gradient(circle at 94% 14%, rgb(246 167 31 / 26%), transparent 26%),
-    radial-gradient(circle at 4% 92%, rgb(99 194 74 / 22%), transparent 26%),
-    radial-gradient(circle at 96% 90%, rgb(14 138 156 / 20%), transparent 26%),
-    linear-gradient(160deg, var(--color-page-start), var(--color-page-end));
-  background-attachment: fixed;
+  background: var(--color-app-bg);
   color: var(--color-ink);
   font-family: var(--font-body);
   /* R5: no selectable text anywhere in the app shell. A long-press or a fast double-tap
@@ -169,11 +165,12 @@ body {
 .menu-title {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 4vmin, 2.25rem);
-  color: var(--color-ink);
+  color: var(--color-ink-on-brand);
 }
 
 .menu-subtitle {
-  color: var(--color-muted);
+  color: var(--color-ink-on-brand);
+  opacity: 0.72; /* still a secondary line, without --color-muted's contrast failure on teal */
   margin-bottom: 0.5rem;
 }
 
@@ -535,10 +532,13 @@ body {
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: clamp(0.7rem, 1.5vmin, 0.95rem);
-  color: var(--color-muted);
+  /* Sits directly on the app-shell's flat teal background, not a white surface —
+     --color-muted's 1.44:1 contrast there fails badly, see --color-ink-on-brand. */
+  color: var(--color-ink-on-brand);
+  opacity: 0.72;
 }
 .level-step[data-state="current"] .level-step-label {
-  color: var(--color-ink);
+  opacity: 1;
   font-weight: 700;
 }
 
@@ -705,21 +705,21 @@ body {
   overflow: clip;
 }
 
+/* The face-down signature: the app logo on a plain white card, matching the reference
+   mockup — every face-down card is identical, no per-position tint or "?" mark needed,
+   since the logo itself is what makes the board read as a set. */
 .card-face--back {
   display: grid;
   place-items: center;
-  background: linear-gradient(155deg, #f0834a, #d95a30);
-  /* The face-down signature (IMPLEMENTATION_PLAN.md §9): the tone shifts slightly per
-     grid position so the board reads as many related cards, not one flat sheet. */
-  filter: hue-rotate(calc(var(--card-index) * 2.4deg));
-  box-shadow: inset 0 -6px 0 rgb(0 0 0 / 12%);
+  padding: 10%;
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
-.card-face--back::before {
-  content: "?";
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(1.25rem, 4.5vmin, 2.75rem);
-  color: rgb(255 255 255 / 88%);
+
+.card-back-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .card-face--front {
@@ -1134,6 +1134,15 @@ body {
 }
 
 /* --- Scores screen --- */
+
+.scores-title {
+  color: var(--color-ink-on-brand);
+}
+
+.scores-empty {
+  color: var(--color-ink-on-brand);
+  opacity: 0.72;
+}
 
 .scores-tabs {
   display: flex;

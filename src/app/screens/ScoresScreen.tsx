@@ -24,7 +24,7 @@ export function ScoresScreen({ onNavigate }: ScoresScreenProps) {
 
   return (
     <main className="scores-screen">
-      <h1>{copy.scores.title}</h1>
+      <h1 className="scores-title">{copy.scores.title}</h1>
       <div className="scores-tabs" role="tablist">
         {LEVEL_IDS.map((id) => (
           <button
@@ -40,7 +40,11 @@ export function ScoresScreen({ onNavigate }: ScoresScreenProps) {
           </button>
         ))}
       </div>
-      {entries.length > 0 ? <LeaderboardTable entries={entries} /> : <p>{copy.scores.empty}</p>}
+      {entries.length > 0 ? (
+        <LeaderboardTable entries={entries} />
+      ) : (
+        <p className="scores-empty">{copy.scores.empty}</p>
+      )}
       <button type="button" className="btn" onClick={() => onNavigate({ kind: "MENU" })}>
         {copy.scores.back}
       </button>

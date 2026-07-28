@@ -666,14 +666,25 @@ referencias visuales concretas que compartió — y ese es el que queda vigente.
 (Perú, lugares turísticos, público joven) no cambia; sí cambia el tono: de "sobrio y
 nocturno" a "brillante y de juego".
 
-### Concepto: **Fondo claro, acentos "caramelo" por nivel**
+### Concepto: **Fondo teal sólido de marca, tarjetas blancas**
 
-Fondo muy claro con manchas de color suaves en las esquinas (vía gradientes radiales en
-`body`, sin marcado extra — ver Tokens). Cada dificultad tiene su propia familia de color
-en degradado (verde/ámbar/magenta para fácil/medio/difícil), reutilizada de forma
-consistente en botones de nivel, CTAs y acentos. Tarjetas y modales son superficies
-blancas con esquinas muy redondeadas y sombra suave — la carta boca abajo es un color
-sólido cálido con un "?" centrado, no un tejido.
+**Tercera dirección visual, reemplaza la anterior.** El fondo pasó de un degradado pastel
+con manchas de color a un **teal sólido de marca** (`--color-app-bg: #009d9e`) detrás de
+toda la app — pantalla de menú, juego, puntajes — a partir de una referencia visual
+concreta (tarjetas blancas con el logo sobre fondo teal). Cada dificultad conserva su
+propia familia de color en degradado (verde/ámbar/magenta para fácil/medio/difícil),
+reutilizada en botones de nivel, CTAs y acentos. Tarjetas y modales siguen siendo
+superficies blancas con esquinas muy redondeadas y sombra suave — eso no cambió.
+
+**Contraste de texto sobre el fondo teal.** Un fondo tan saturado no admite cualquier color
+de texto: `--color-ink` (pensado para texto sobre blanco) solo llega a 3.85:1 contra
+`#009d9e` — no alcanza el 4.5:1 que exige WCAG AA para texto normal, y `--color-muted` cae
+a un 1.44:1 inutilizable. Por eso existe `--color-ink-on-brand: #04202b`, que sí llega a
+~5.5:1, reservado para los pocos textos que quedan **directamente** sobre el fondo (no
+dentro de una tarjeta blanca): título y subtítulo del menú, título de la pantalla de
+puntajes y su mensaje vacío, y las etiquetas del indicador de dificultad del header —
+`text-on-brand.opacity: 0.72` sustituye a `--color-muted` para la variante "secundaria" de
+ese mismo texto, en vez de un segundo color con su propio contraste por verificar.
 
 ### Tokens
 
@@ -682,12 +693,14 @@ sólido cálido con un "?" centrado, no un tejido.
 @import "tailwindcss";
 
 @theme {
-  /* Palette — bright, playful, modern: light backdrop, one gradient family per level */
-  --color-page-start: #eaf7fb;
-  --color-page-end: #fdf1f7;
+  /* Palette — bright, playful, modern: flat brand teal behind everything, one gradient
+     family per level for buttons and accents */
+  --color-app-bg: #009d9e;
+  --color-page-start: #eaf7fb; /* pale tint reused for pill/chip backgrounds */
   --color-surface: #ffffff;
-  --color-ink: #0b3550; /* headings, primary text on light surfaces */
-  --color-muted: #5b7688; /* secondary text */
+  --color-ink: #0b3550; /* headings, primary text on white surfaces */
+  --color-ink-on-brand: #04202b; /* text directly on --color-app-bg — ~5.5:1, see above */
+  --color-muted: #5b7688; /* secondary text on white surfaces */
   --color-border: #e3edf2;
 
   --color-brand: #0e8a9c; /* teal — primary CTAs, links, progress */
@@ -730,28 +743,34 @@ funciona en `pnpm dev` y da 404 **solo dentro del `.exe` empaquetado**, exactame
 fallo que R3 (`base: './'`) existe para prevenir. Al importar la fuente desde `src/`, Vite la
 procesa como cualquier otro asset y reescribe la URL correctamente en ambos entornos.
 
-### Elemento firma: cartas boca abajo con "?"
+### Elemento firma: cartas boca abajo con el logo
 
-El reverso de la carta es un degradado cálido sólido (naranja/terracota) con un "?"
-centrado — no un patrón tejido. Se conserva la idea de que el tono varíe levemente según
-la posición en la grilla (misma técnica, un `hue-rotate` con la custom property
-`--card-index`), así el tablero boca abajo sigue leyéndose como un conjunto relacionado y
-no veinte fichas idénticas, pero el motivo visual en sí (SVG de chakana escalonada) se
-retiró junto con el resto del concepto oscuro.
+El reverso de la carta es una tarjeta blanca lisa con el logo de la app centrado —
+reemplaza tanto la versión con "?" como la anterior con patrón tejido. Todas las cartas
+boca abajo son **idénticas**, sin variación de tono por posición: la referencia visual que
+define este diseño (mockup de tarjetas blancas sobre fondo teal) las muestra así, y el
+logo ya aporta identidad de marca suficiente sin necesitar un truco de `hue-rotate` por
+carta. Esto simplificó `CardItem.tsx`: la custom property `--card-index` que solo existía
+para ese filtro se retiró, junto con el prop `index` que la alimentaba.
 
 ```css
 .card-face--back {
-  background: linear-gradient(155deg, #f0834a, #d95a30);
-  filter: hue-rotate(calc(var(--card-index) * 2.4deg));
+  display: grid;
+  place-items: center;
+  padding: 10%;
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
-.card-face--back::before {
-  content: "?";
-  color: rgb(255 255 255 / 88%);
+.card-back-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 ```
 
-Una línea de CSS (`hue-rotate`) sigue siendo lo único que distingue una carta de otra boca
-abajo. Todo lo demás va callado y disciplinado.
+El `padding: 10%` dimensiona el logo de forma proporcional a la carta —grande, casi al
+borde, como en la referencia— sin fijar un tamaño en píxeles que se vería mal en un nivel
+con celdas más grandes o más chicas.
 
 ### Motion
 
